@@ -14,9 +14,13 @@ platforms:
 
 apps:
   maven-check:
-    command: bin/java -jar $SNAP/jar/checkdepends-0.0.1-SNAPSHOT.jar dep-check
+    command: bin/java -jar $SNAP/jar/checkdepends-0.0.1-SNAPSHOT.jar maven-check
+    environment:
+      JAVA_HOME: $SNAP/usr/lib/jvm/java-21-openjdk-amd64/
     plugs:
       - home
+      - network
+      - network-bind
 
   dj-package-list:
     command: bin/java -jar $SNAP/jar/checkdepends-0.0.1-SNAPSHOT.jar
@@ -33,4 +37,8 @@ parts:
       - maven
     stage-packages:
       - default-jdk
+      - maven
     source: check-depends
+    override-build: |
+      (cd $CRAFT_PART_INSTALL && mkdir -p bin && ln -sf --relative usr/share/maven/bin/mvn bin/)
+      craftctl default
