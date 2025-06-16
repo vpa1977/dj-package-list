@@ -66,15 +66,22 @@ public class App
                 try {
                     var existingFile = findPackageFile(pkg, debStore);
                     if (existingFile.isEmpty()) {
-                        downloadPkg(debStore, pkg);
-                        existingFile = findPackageFile(pkg, debStore);
+                        try {
+                            downloadPkg(debStore, pkg);
+                            existingFile = findPackageFile(pkg, debStore);
+                        }
+                        catch (Exception e) {
+                            System.err.println(e.getMessage());
+                            continue;
+                        }
                     }
                     tempDir = Files.createTempDirectory("unpackedDebs").toFile();
                     unpackDebFile(existingFile.get(), tempDir);
                     ArrayList<Path> packageFiles = new ArrayList<>();
                     try (var stream = Files.walk(tempDir.toPath())) {
                         stream
-                                .filter(Files::isRegularFile) // Filter to include only regular files
+                                .filter(Files::isRegularFile)
+                                .filter( x -> x.toString().endsWith(".pom"))
                                 .forEach(packageFiles::add);
                     } catch (IOException e) {
                         System.err.println("Error walking the file tree: " + e.getMessage());
@@ -89,13 +96,19 @@ public class App
                         if (!fileInPackage.toString().contains("usr/share/maven-repo")) {
                             continue;
                         }
-                        var art = parseMavenRepoPath(tempDir.toPath().resolve("usr/share/maven-repo"),
-                                fileInPackage.toFile().getAbsoluteFile().getParentFile().toString());
-                        dbManager.insertArtifact(art.groupId, art.artifactId, art.version, packageName, version);
-                        System.out.println();
+                        try {
+                            var art = parseMavenRepoPath(tempDir.toPath().resolve("usr/share/maven-repo"),
+                                    fileInPackage.toFile().getAbsoluteFile().getParentFile().toString());
+                            if (art != null) {
+                                dbManager.insertArtifact(art.groupId, art.artifactId, art.version, packageName, version);
+                            }
+                        }
+                        catch (Exception e){
+                            System.out.println(e.getMessage());
+                        }
                     }
 
-                } catch (IOException | InterruptedException | SQLException ex) {
+                } catch (IOException | InterruptedException ex) {
                     System.err.println(ex.getMessage());
                 }
             }
@@ -111,6 +124,10 @@ public class App
         int len = parent.toString().length();
         var fullArtifact = pathInRepo.substring(len+1);
         String[] artifactItems = fullArtifact.split("/");
+        if (artifactItems.length < 2) {
+            System.out.println("Wrong artifact name "+ fullArtifact);
+            return null;
+        }
         String version = artifactItems[artifactItems.length - 1];
         String artifactId = artifactItems[artifactItems.length - 2];
         StringBuilder groupId = new StringBuilder();
@@ -124,6 +141,6 @@ public class App
     }
 
     private static Optional<File> findPackageFile(String pkg, File debStore) {
-        return Arrays.stream(debStore.listFiles()).filter(x -> x.toString().contains(pkg)).findFirst();
+        return Arrays.stream(debStore.listFiles()).filter(x -> x.toString().contains(pkg+"_")).findFirst();
     }
 }
