@@ -52,7 +52,7 @@ public class MavenDependencyChecker {
             // Now we can print Build-Depends: for the maven project
 
             // find unique package names and associated artifacts
-            HashSet<String> packages = new HashSet<String>();
+            HashSet<String> packages = new HashSet<>();
             HashMap<String, String> packageVersions = new HashMap<>();
             HashMap<String, HashSet<String>> packageToArtifacts = new HashMap<>();
             for (var art : result) {
@@ -67,7 +67,8 @@ public class MavenDependencyChecker {
                 }
                 packageVersions.put(art.packageName(), art.packageVersion());
             }
-
+            System.out.println();
+            System.out.println("Build-Depends:");
             for (var p : packages) {
                 if (NOT_YET_PACKAGED.equals(p)) {
                     continue;
