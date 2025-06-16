@@ -41,15 +41,15 @@ public class DbManager {
     public List<Artifact> searchArtifacts(String groupId, String artifactId) {
             String sql = "SELECT group_id, artifact_id, version, package_name, package_version " +
                         "FROM imported_artifacts " +
-                        "WHERE group_id LIKE ? AND artifact_id LIKE ?";
+                        "WHERE group_id = ? AND artifact_id = ?";
 
             List<Artifact> artifacts = new ArrayList<>();
 
             try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
 
                 // Set parameters with wildcards
-                pstmt.setString(1, (groupId == null ? "" : groupId) + "%");
-                pstmt.setString(2, (artifactId == null ? "" : artifactId) + "%");
+                pstmt.setString(1, (groupId == null ? "" : groupId));
+                pstmt.setString(2, (artifactId == null ? "" : artifactId));
 
                 ResultSet rs = pstmt.executeQuery();
 
