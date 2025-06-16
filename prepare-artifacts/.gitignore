@@ -1,0 +1,4 @@
+debstore
+.idea
+artifacts.db
+target/
