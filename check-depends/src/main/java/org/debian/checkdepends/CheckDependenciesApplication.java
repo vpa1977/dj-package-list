@@ -1,6 +1,5 @@
 package org.debian.checkdepends;
 
-import java.awt.image.AreaAveragingScaleFilter;
 import java.io.IOException;
 
 import org.slf4j.Logger;
@@ -22,7 +21,7 @@ public class CheckDependenciesApplication {
 	public static void main(String[] args) throws IOException, InterruptedException {
         // TODO: use Spring Shell
         if (args.length > 0) {
-            if (!args[0].equals("dep-check")) {
+            if (!args[0].equals("maven-check")) {
                 System.out.println("Unknown command "+ args[0]);
                 System.exit(-1);
             }
