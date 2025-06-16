@@ -3,8 +3,12 @@ base: core24
 version: '0.1'
 summary: A list of artifact to Ubuntu package mappings for Java
 description: |
-  This snap provides a view of Java artifacts in plucky and packages
-  they are in
+  This snap provides a view of Java artifacts in Plucky.
+
+  The dj-package-list command starts an HTTP server on port 11111 and opens a browser.
+
+  Run the following command to list the Java package build dependencies for the project in <dir>:
+  java -jar /snap/dj-package-list/current/jar/checkdepends-0.0.1-SNAPSHOT.jar maven-check <dir> <maven-goal> [maven args]
 
 grade: devel
 confinement: strict
@@ -13,15 +17,6 @@ platforms:
   amd64:
 
 apps:
-  maven-check:
-    command: bin/java -jar $SNAP/jar/checkdepends-0.0.1-SNAPSHOT.jar maven-check
-    environment:
-      JAVA_HOME: $SNAP/usr/lib/jvm/java-21-openjdk-amd64/
-    plugs:
-      - home
-      - network
-      - network-bind
-
   dj-package-list:
     command: bin/java -jar $SNAP/jar/checkdepends-0.0.1-SNAPSHOT.jar
     plugs:
@@ -37,8 +32,4 @@ parts:
       - maven
     stage-packages:
       - default-jdk
-      - maven
     source: check-depends
-    override-build: |
-      (cd $CRAFT_PART_INSTALL && mkdir -p bin && ln -sf --relative usr/share/maven/bin/mvn bin/)
-      craftctl default
