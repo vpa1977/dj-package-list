@@ -22,7 +22,7 @@ public class DbManager {
         initialize();
     }
 
-    private  void initialize() {
+    private void initialize() {
         try {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite::resource:artifacts.db");
@@ -38,36 +38,45 @@ public class DbManager {
         }
     }
 
-    public List<Artifact> searchArtifacts(String groupId, String artifactId) {
-            String sql = "SELECT group_id, artifact_id, version, package_name, package_version " +
-                        "FROM imported_artifacts " +
-                        "WHERE group_id = ? AND artifact_id = ?";
+    public List<Artifact> searchArtifacts(String groupId, String artifactId, boolean exact) {
+        String sql = "SELECT group_id, artifact_id, version, package_name, package_version "
+                + "FROM imported_artifacts ";
 
-            List<Artifact> artifacts = new ArrayList<>();
+        if (exact) {
+            sql += "WHERE group_id = ? AND artifact_id = ?";
+        } else {
+            sql+= "WHERE group_id LIKE ? AND artifact_id LIKE ?";
+        }
 
-            try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+        List<Artifact> artifacts = new ArrayList<>();
 
-                // Set parameters with wildcards
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+
+            if (exact) {
                 pstmt.setString(1, (groupId == null ? "" : groupId));
                 pstmt.setString(2, (artifactId == null ? "" : artifactId));
-
-                ResultSet rs = pstmt.executeQuery();
-
-                while (rs.next()) {
-                    Artifact artifact = new Artifact(
-                            rs.getString("group_id"),
-                            rs.getString("artifact_id"),
-                            rs.getString("version"),
-                            rs.getString("package_name"),
-                            rs.getString("package_version").replace("%3a", ":") // fixup import artifact (: encoding)
-                    );
-                    artifacts.add(artifact);
-                }
-            } catch (SQLException e) {
-                System.err.println("Error during artifact search: " + e.getMessage());
+            } else {
+                pstmt.setString(1, (groupId == null ? "" : groupId + "%"));
+                pstmt.setString(2, (artifactId == null ? "" : artifactId+ "%"));
             }
-            return artifacts;
+
+            ResultSet rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Artifact artifact =
+                        new Artifact(rs.getString("group_id"),
+                                    rs.getString("artifact_id"),
+                                    rs.getString("version"),
+                                    rs.getString("package_name"),
+                                    rs.getString("package_version").replace("%3a", ":") // fixup import artifact (':' encoding)
+                        );
+                artifacts.add(artifact);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error during artifact search: " + e.getMessage());
         }
+        return artifacts;
+    }
 
 
     public void close() {

@@ -38,7 +38,7 @@ public class MavenDependencyChecker {
             ArrayList<Artifact> result = new ArrayList<>();
             for (var path : fetchedArtifacts) {
                 Artifact art = parseMavenRepoPath(repoLocal, path);
-                List<Artifact> fullArtifacts =  dbManager.searchArtifacts(art.groupId(), art.artifactId());
+                List<Artifact> fullArtifacts =  dbManager.searchArtifacts(art.groupId(), art.artifactId(), true);
                 if (fullArtifacts.size() > 0) {
                     for (var x : fullArtifacts) {
                         result.add(new Artifact(art.groupId(), art.artifactId(), art.version(), x.packageName(), x.packageVersion()));
