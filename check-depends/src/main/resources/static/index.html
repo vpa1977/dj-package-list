@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Maven Artifact Search</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="mx-auto p-4 md:p-8">
+        <div class="mx-auto bg-white rounded-lg shadow-lg p-6">
+            <h1 class="text-3xl font-bold mb-2 text-gray-900">Maven Artifact Search</h1>
+            <p class="text-gray-600 mb-6">Search for artifacts</p>
+
+            <!-- Search Form -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="groupId" class="block text-sm font-medium text-gray-700 mb-1">Group ID</label>
+                    <input type="text" id="groupId" placeholder="e.g., org.springframework"
+                        class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+                <div>
+                    <label for="artifactId" class="block text-sm font-medium text-gray-700 mb-1">Artifact ID</label>
+                    <input type="text" id="artifactId" placeholder="e.g., spring-core"
+                        class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                </div>
+            </div>
+
+            <!-- Status Indicator -->
+            <div id="status" class="mb-6 text-sm text-center"></div>
+
+            <!-- Results Table -->
+            <div class="w-full overflow-x-auto">
+                <table class="w-full bg-white border border-gray-200 rounded-lg">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Group ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Artifact ID</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Artifact Version</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Package Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Package Version</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results" class="divide-y divide-gray-200">
+                        <!-- Results will be inserted here by JavaScript -->
+                        <tr>
+                            <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                Type in the fields above to start searching...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="no-results" class="hidden text-center py-4 text-gray-500">
+                No matching artifacts found.
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const groupIdInput = document.getElementById('groupId');
+        const artifactIdInput = document.getElementById('artifactId');
+        const resultsBody = document.getElementById('results');
+        const statusDiv = document.getElementById('status');
+        const noResultsDiv = document.getElementById('no-results');
+
+        let debounceTimer;
+
+        const debounce = (func, delay) => {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(func, delay);
+        };
+
+        async function fetchSearchResults() {
+            const groupId = groupIdInput.value;
+            const artifactId = artifactIdInput.value;
+
+            // Show a loading indicator
+            statusDiv.textContent = 'Searching...';
+            statusDiv.className = 'mb-6 text-sm text-center text-blue-600';
+
+            try {
+                // Construct the URL with query parameters
+                const url = new URL('/api/artifacts/search', window.location.origin);
+                url.searchParams.append('groupId', groupId);
+                url.searchParams.append('artifactId', artifactId);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const artifacts = await response.json();
+                showResults(artifacts);
+                statusDiv.textContent = ''; // Clear status on success
+
+            } catch (error) {
+                console.error("Failed to fetch search results:", error);
+                statusDiv.textContent = 'Error fetching results.';
+                statusDiv.className = 'mb-6 text-sm text-center p-2 rounded-lg bg-red-100 text-red-800';
+            }
+        }
+
+        function showResults(artifacts) {
+            resultsBody.innerHTML = ''; // Clear previous results
+            if (!artifacts || artifacts.length === 0) {
+                noResultsDiv.classList.remove('hidden');
+                resultsBody.innerHTML = `<tr><td colspan="4" class="px-6 py-4 text-center text-gray-500">No matching artifacts found for your query.</td></tr>`;
+            } else {
+                noResultsDiv.classList.add('hidden');
+                artifacts.forEach(artifact => {
+                    const row = document.createElement('tr');
+                    row.className = 'hover:bg-gray-50 transition-colors';
+                    row.innerHTML = `
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${artifact.groupId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${artifact.artifactId}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${artifact.version}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${artifact.packageName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-800">${artifact.packageVersion}</td>
+                    `;
+                    resultsBody.appendChild(row);
+                });
+            }
+        }
+
+        // Event listeners for input fields that trigger the debounced search
+        groupIdInput.addEventListener('keyup', () => debounce(fetchSearchResults, 300));
+        artifactIdInput.addEventListener('keyup', () => debounce(fetchSearchResults, 300));
+
+        // Perform an initial search when the page loads
+        document.addEventListener('DOMContentLoaded', fetchSearchResults);
+
+    </script>
+</body>
+
+</html>
