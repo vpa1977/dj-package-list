@@ -16,10 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class MavenRemoteService {
     private static final Logger logger = LoggerFactory.getLogger(MavenRemoteService.class);
@@ -27,19 +24,6 @@ public class MavenRemoteService {
     private final CloseableHttpClient httpClient;
     private final DbManager dbManager;
     private final RepositoryManager repositoryManager;
-
-    // Pattern to extract GroupId, ArtifactId, Version, and Type from Maven URLs
-    // This pattern attempts to capture common Maven artifact URL structures.
-    // Examples:
-    // org/apache/maven/maven-model/3.8.1/maven-model-3.8.1.jar
-    // com/google/guava/guava/31.1-jre/guava-31.1-jre.pom
-    // org/springframework/boot/spring-boot-starter-web/2.7.0/spring-boot-starter-web-2.7.0.pom.sha1
-    // Matches: group (slash-separated), artifact, version, filename, extension, optional checksum suffix
-    private static final Pattern ARTIFACT_URL_PATTERN = Pattern.compile(
-            "(.+?)/([^/]+)/([^/]+)/([^/]+?)(?:-(?:[\\d\\.]+|.+?))?\\.([^/]+?)((?:\\.sha1|\\.md5)?)",
-            Pattern.CASE_INSENSITIVE
-    );
-
 
     public MavenRemoteService(String[] remoteRepositoryUrl, RepositoryManager repositoryManager, DbManager dbManager) {
         this.remoteRepositoryUrl = Arrays.stream(remoteRepositoryUrl).map(x -> x.endsWith("/") ? x : x + "/").toArray(String[]::new);
@@ -140,36 +124,12 @@ public class MavenRemoteService {
     }
 
     private void logArtifactId(String requestPath, String remoteUrl) {
-        // Strip leading slash for easier matching against typical Maven paths
-        String path = requestPath.startsWith("/") ? requestPath.substring(1) : requestPath;
-        Matcher matcher = ARTIFACT_URL_PATTERN.matcher(path);
-
-        if (matcher.matches()) {
-            // Group 1: GroupId (e.g., "org/apache/maven")
-            String groupIdRaw = matcher.group(1);
-            String groupId = groupIdRaw.replace('/', '.'); // Convert slashes to dots
-
-            // Group 2: ArtifactId (e.g., "maven-model")
-            String artifactId = matcher.group(2);
-
-            // Group 3: Version (e.g., "3.8.1")
-            String version = matcher.group(3);
-
-            // Group 5: Extension/Type (e.g., "jar", "pom")
-            String type = matcher.group(5);
-
-            // Group 6: Checksum suffix (e.g., ".sha1", ".md5" or empty)
-            String checksumSuffix = matcher.group(6);
-
-            // Only log the base artifact URL, not checksum URLs
-            String baseUrl = requestPath;
-            if (!checksumSuffix.isEmpty()) {
-                baseUrl = requestPath.substring(0, requestPath.lastIndexOf(checksumSuffix));
-            }
-
-            dbManager.logUniqueArtifact(groupId, artifactId, version, baseUrl, remoteUrl);
-        } else {
-            logger.debug("Request path does not match artifact pattern: {}", requestPath);
+        try {
+            var art = ArtifactParseUtil.parse(requestPath);
+            dbManager.logUniqueArtifact(art.groupId(), art.name(),  art.version(), requestPath, remoteUrl);
+        }
+        catch (RuntimeException e){
+            logger.debug("Request path does not match artifact pattern: {} ", e.getMessage());
         }
     }
 }
