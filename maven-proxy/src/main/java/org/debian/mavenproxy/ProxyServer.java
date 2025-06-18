@@ -59,7 +59,7 @@ public class ProxyServer implements HttpRequestHandler {
     }
 
     @Override
-    public void handle(HttpRequest request, HttpResponse response, HttpContext context) throws IOException {
+    public synchronized void handle(HttpRequest request, HttpResponse response, HttpContext context) throws IOException {
         if (!request.getRequestLine().getMethod().equalsIgnoreCase("GET")) {
             response.setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
             return;
