@@ -62,7 +62,7 @@ public class DbManager {
                          "artifactId TEXT," +
                          "version TEXT," +
                          "requestUrl TEXT," + // e.g., jar, pom, war, etc.
-                         "remoteUrl TEXT UNIQUE NOT NULL," + // Full URL of the artifact
+                         "remoteUrl TEXT NOT NULL," + // Full URL of the artifact
                          "PRIMARY KEY(groupId, artifactId, version)" + // Full URL of the artifact
                          ")");
         }
@@ -94,7 +94,7 @@ public class DbManager {
 
     public void logUniqueArtifact(String groupId, String artifactId, String version, String requestUrl, String remoteUrl) {
         // Use INSERT OR IGNORE to only log unique URLs, preventing duplicates
-        String sql = "INSERT OR IGNORE INTO remote_artifacts(groupId, artifactId, version, requestUrl, remoteUrl) VALUES(?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO remote_artifacts(groupId, artifactId, version, requestUrl, remoteUrl) VALUES(?, ?, ?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, groupId);
             pstmt.setString(2, artifactId);
@@ -103,9 +103,9 @@ public class DbManager {
             pstmt.setString(5, remoteUrl);
             pstmt.executeUpdate();
             connection.commit();
-            logger.debug("Logged unique artifact: {} ({} {} {})", remoteUrl, groupId, artifactId, version);
+            logger.info("Logged unique artifact: {} ({} {} {})", remoteUrl, groupId, artifactId, version);
         } catch (SQLException e) {
-            logger.error("Error logging unique artifact for {}: {}", remoteUrl, e.getMessage(), e);
+            logger.error("Error logging unique artifact for {}: {}", requestUrl, e.getMessage());
         }
 
     }
