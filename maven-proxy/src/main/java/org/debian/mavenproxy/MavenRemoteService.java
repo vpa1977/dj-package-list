@@ -88,7 +88,7 @@ public class MavenRemoteService {
             contentStream = remoteEntity.getContent();
 
             // If it's an artifact (not a checksum), try to cache it
-            if (!remoteUrl.endsWith(".sha1") && !remoteUrl.endsWith(".md5") &&
+            if (!relativePath.endsWith(".sha1") && !relativePath.endsWith(".md5") &&
                     statusCode == HttpStatus.SC_OK) { // Only cache if remote fetch was successful
 
                 // Create a temporary input stream to read content twice: once for saving, once for checksum
