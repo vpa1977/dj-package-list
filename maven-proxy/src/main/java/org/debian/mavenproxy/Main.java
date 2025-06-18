@@ -26,7 +26,7 @@ public class Main {
         String[] remoteRepoUrls = new String[] {
             "https://repo.maven.apache.org/maven2/",
             "https://plugins.gradle.org/m2/",
-            "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-dependencies"
+            "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-dependencies/"
         };
 
         // Validate local repository path
