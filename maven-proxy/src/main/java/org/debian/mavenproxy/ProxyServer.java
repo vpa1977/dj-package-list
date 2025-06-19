@@ -60,6 +60,11 @@ public class ProxyServer implements HttpRequestHandler {
 
     @Override
     public synchronized void handle(HttpRequest request, HttpResponse response, HttpContext context) throws IOException {
+        if (request.getRequestLine().getMethod().equalsIgnoreCase("HEAD")) {
+            remoteService.headFromRemote(request.getRequestLine().getUri(), response);
+            return;
+        }
+
         if (!request.getRequestLine().getMethod().equalsIgnoreCase("GET")) {
             response.setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
             return;

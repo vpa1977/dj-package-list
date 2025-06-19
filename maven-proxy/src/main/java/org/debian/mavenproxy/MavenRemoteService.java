@@ -6,6 +6,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpHead;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -55,6 +56,44 @@ public class MavenRemoteService {
             httpClient.close();
             logger.info("HTTP client closed.");
         }
+    }
+
+    public void headFromRemote(String relativePath, HttpResponse response) throws IOException {
+        for (var remoteUrl : remoteRepositoryUrl) {
+            if (fetchAndServiceFromRemoteUrl(remoteUrl, relativePath, response)) {
+                return;
+            }
+        }
+        response.setStatusCode(HttpStatus.SC_NOT_FOUND);
+    }
+
+
+    private boolean headFromRemote(String remoteUrl, String relativePath, HttpResponse response ) throws IOException {
+        HttpHead head = new HttpHead(remoteUrl + relativePath);
+        CloseableHttpResponse remoteResponse = null;
+        try {
+            remoteResponse = httpClient.execute(head);
+            int statusCode = remoteResponse.getStatusLine().getStatusCode();
+            if (HttpStatus.SC_OK != statusCode) {
+                return false;
+            }
+            response.setStatusCode(statusCode); // Set response status code from remote
+
+            // Copy headers from remote response to local response
+            for (Header header : remoteResponse.getAllHeaders()) {
+                // Avoid copying headers that might interfere with local serving, e.g., Transfer-Encoding
+                if (!header.getName().equalsIgnoreCase("Transfer-Encoding") &&
+                        !header.getName().equalsIgnoreCase("Content-Length")) {
+                    response.setHeader(header);
+                }
+            }
+        }
+        finally {
+            if (remoteResponse != null) {
+                remoteResponse.close(); // Close the remote response to release resources
+            }
+        }
+        return true;
     }
 
     private boolean fetchAndServiceFromRemoteUrl(String remoteUrl, String relativePath, HttpResponse response)  throws IOException {
