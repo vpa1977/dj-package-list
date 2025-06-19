@@ -3,9 +3,12 @@ package org.debian.mavenproxy;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,11 +21,14 @@ public class Main {
 
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         // Default configuration values
         int port = 8080;
         String localRepoPath = "local-maven-proxy-cache";
+
         String dbFilePath = "maven_proxy.db";
+        // will fail to copy over the existing file
+        Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
         String[] remoteRepoUrls = new String[] {
             "https://repo.maven.apache.org/maven2/",
             "https://plugins.gradle.org/m2/",
