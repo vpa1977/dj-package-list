@@ -60,13 +60,12 @@ public class MavenRemoteService {
 
     public void headFromRemote(String relativePath, HttpResponse response) throws IOException {
         for (var remoteUrl : remoteRepositoryUrl) {
-            if (fetchAndServiceFromRemoteUrl(remoteUrl, relativePath, response)) {
+            if (headFromRemote(remoteUrl, relativePath, response)) {
                 return;
             }
         }
         response.setStatusCode(HttpStatus.SC_NOT_FOUND);
     }
-
 
     private boolean headFromRemote(String remoteUrl, String relativePath, HttpResponse response ) throws IOException {
         HttpHead head = new HttpHead(remoteUrl + relativePath);
