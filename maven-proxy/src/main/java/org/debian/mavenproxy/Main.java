@@ -1,17 +1,16 @@
 package org.debian.mavenproxy;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.file.CopyOption;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Map;
+
+import org.yaml.snakeyaml.Yaml;
 /**
  * Main class for the Maven Proxy application.
  * This class parses command-line arguments, initializes the components,
@@ -22,8 +21,14 @@ public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) throws IOException {
+
+        Yaml yaml = new Yaml();
+        Map<String, Object> config = (Map<String, Object>) yaml.parse(new FileReader("config.yaml"));
+
         // Default configuration values
-        int port = 8080;
+        int port = (Integer)config.get("port");
+        boolean mapArtifacts = (Boolean)config.get("map-artifacts");
+
         String localRepoPath = "local-maven-proxy-cache";
 
         String dbFilePath = "maven_proxy.db";
