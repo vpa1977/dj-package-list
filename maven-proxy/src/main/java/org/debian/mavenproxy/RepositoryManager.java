@@ -84,12 +84,17 @@ public class RepositoryManager {
         }
         File file = filePath.toFile();
         if (file.exists()) {
-            return file;
+            return artifactMapper.mapFile(remappedArtifact.art(), file);
         }
 
-        filePath = debianPath.resolve(relativePath).normalize();
+        filePath = debianPath.resolve(remappedArtifact.newRequestPath()).normalize();
+        if (!filePath.startsWith(debianPath)) {
+            logger.warn("Attempted path traversal detected for retrieval: {}", relativePath);
+            return null;
+        }
+
         file = filePath.toFile();
-        return file.exists() ? file : null;
+        return file.exists() ? artifactMapper.mapFile(remappedArtifact.art(), file) : null;
     }
 
     public File saveArtifact(String relativePath, InputStream inputStream) {
