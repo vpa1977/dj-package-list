@@ -59,7 +59,8 @@ public class Main {
             dbManager.initialize();
 
             // Initialize RepositoryManager
-            RepositoryManager repositoryManager = new RepositoryManager(localRepoPath, "/usr/share/maven-repo");
+            ArtifactMapper mapper = new ArtifactMapper(mapArtifacts);
+            RepositoryManager repositoryManager = new RepositoryManager(localRepoPath, "/usr/share/maven-repo", mapper);
 
             MavenRemoteService mavenRemoteService = new MavenRemoteService(remoteRepoUrls, repositoryManager, dbManager);
             // Initialize and start ProxyServer

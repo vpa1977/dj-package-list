@@ -23,8 +23,10 @@ public class RepositoryManager {
     private static final Logger logger = LoggerFactory.getLogger(RepositoryManager.class);
     private final Path localRepositoryPath;
     private final Path debianPath;
+    private final ArtifactMapper artifactMapper;
 
-    public RepositoryManager(String localRepositoryBasePath, String debianPath) throws IOException {
+    public RepositoryManager(String localRepositoryBasePath, String debianPath, ArtifactMapper mapper) throws IOException {
+        this.artifactMapper = mapper;
         this.localRepositoryPath = Paths.get(localRepositoryBasePath).toAbsolutePath().normalize();
         this.debianPath = Paths.get(debianPath).toAbsolutePath().normalize();
         if (!Files.exists(this.localRepositoryPath)) {
@@ -73,7 +75,9 @@ public class RepositoryManager {
         if (relativePath.startsWith("/")) {
             relativePath = relativePath.substring(1);
         }
-        Path filePath = localRepositoryPath.resolve(relativePath).normalize();
+        RemappedArtifact remappedArtifact = artifactMapper.mapRequestPath(relativePath);
+
+        Path filePath = localRepositoryPath.resolve(remappedArtifact.newRequestPath()).normalize();
         if (!filePath.startsWith(localRepositoryPath)) {
             logger.warn("Attempted path traversal detected for retrieval: {}", relativePath);
             return null;
