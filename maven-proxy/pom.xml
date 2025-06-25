@@ -88,6 +88,14 @@
             <version>5.18.0</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>org.debian</groupId>
+            <artifactId>maven-repo-helper</artifactId>
+            <version>debian</version>
+            <scope>system</scope>
+            <systemPath>/usr/share/java/maven-repo-helper.jar</systemPath>
+        </dependency>
     </dependencies>
 
     <build>

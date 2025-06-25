@@ -34,7 +34,7 @@ public class RemoteFetchIntegrationTest {
         };
         DbManager dbManager = new DbManager(testFile +"/test.db");
         dbManager.initialize();
-        ArtifactMapper mapper = new ArtifactMapper(false);
+        ArtifactMapper mapper = new ArtifactMapper(false, null, null, null);
         RepositoryManager repoManager = new RepositoryManager(localRepo.getAbsolutePath(), debianRepo.getAbsolutePath(), mapper);
         MavenRemoteService rp = new MavenRemoteService(remoteRepoUrls, repoManager, dbManager);
         HttpResponse mockResponse = Mockito.mock(org.apache.http.HttpResponse.class);

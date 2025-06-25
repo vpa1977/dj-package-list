@@ -1,2 +1,16 @@
 port: 8080
 map-artifacts: true
+replace:
+ignore:
+  - com.autonomousapps * * * * *
+  - com.esotericsoftware.minlog * * * * *
+  - com.github.javaparser * * * * *
+  - com.github.siom79.japicmp * * * * *
+  - com.google.apis * * * * *
+  - com.openhtmltopdf * * * * *
+  - com.vladsch.flexmark * * * * *
+  - gradle.plugin.org.jetbrains.gradle.plugin.idea-ext * * * * *
+  - org.asciidoctor * * * * *
+  - org.scala-sbt * * * * *
+  - org.ysb33r.gradle * * * * *
+  - org.openmbee.junit * * * * *

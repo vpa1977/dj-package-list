@@ -1,5 +1,7 @@
 package org.debian.mavenproxy;
 
+import org.debian.maven.repo.Dependency;
+import org.debian.maven.repo.DependencyRuleSet;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -7,28 +9,76 @@ import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * Translates requested artifact to Debian coordiantes
  */
 public class ArtifactMapper {
     private final boolean map;
-    private HashMap<ArtifactParseUtil.Artifact, File> mappedFiles = new HashMap<>();
+    private final DbManager dbManager;
+    private final DependencyRuleSet ignoreRuleSet;
+    private final DependencyRuleSet replaceRuleSet;
+    private final HashMap<ArtifactParseUtil.Artifact, File> mappedFiles = new HashMap<>();
 
-    public ArtifactMapper(boolean map) throws IOException {
+    public ArtifactMapper(boolean map, DbManager dbManager, List<String> replaceRules, List<String> ignoreRules) throws IOException {
         this.map = map;
+        this.dbManager = dbManager;
+        this.ignoreRuleSet = RuleParser.parseRules(ignoreRules, "ignore");
+        this.replaceRuleSet = RuleParser.parseRules(replaceRules, "replace");
     }
 
+    /**
+     * This method finds the best version to use in Debian Repo.
+     * It returns RemappedArtifact with:
+     *  - Artifact - original requested coordinates
+     *  - oldRequestPath - original request path
+     *  - newRequestPath - path to the artifact in maven repo
+     * @param path - original request path
+     * @return RemappedArtifact
+     */
     public RemappedArtifact mapRequestPath(String path) {
         ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(path);
         if (!map) {
             return new RemappedArtifact(art, path, path);
         }
 
-        return new RemappedArtifact(art, path, path);
+         try {
+            String filePath = path.substring(path.lastIndexOf("/")+1);
+            String ext = filePath.substring(filePath.lastIndexOf(".")+1);
+
+            if (!ignoreRuleSet.findMatchingRules(new Dependency(art.groupId(), art.name(), art.type(), art.version())).isEmpty()){
+                return new RemappedArtifact(art, path, "placeholder/gradle-dependency-placeholder-1.0."+ ext);
+            }
+            List<String> versions = dbManager.findVersion(art.groupId(), art.name());
+            return new RemappedArtifact(art, path, path);
+/*
+            // apply maven.rules here.
+            // lets use simplistic replacement for now
+            if (versions.contains("debian")) {
+                String newFileName = art.name() + "-debian." + ext;
+                return new RemappedArtifact(art, path, ArtifactParseUtil.getRequestPath(art.groupId(), art.name(), "debian", newFileName));
+            } else if (!versions.isEmpty()) {
+                String newFileName = art.name() + "-"+versions.getFirst()+"." + ext;
+                return new RemappedArtifact(art, path, ArtifactParseUtil.getRequestPath(art.groupId(), art.name(), versions.getFirst(), newFileName));
+            }
+
+            return new RemappedArtifact(art, path, path);
+ */
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
+    /**
+     * This method is used to patch POM files returned to the caller
+     * It replaces pom with the patched pom. NB. SHA1 files is not handled yet.
+     * @param art - original requested artifact
+     * @param sourceFile - source file in maven repo
+     * @return file to return to the caller
+     */
     public File mapFile(ArtifactParseUtil.Artifact art, File sourceFile)  {
         if (!map) {
             return sourceFile;

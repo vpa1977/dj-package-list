@@ -6,6 +6,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,7 +74,7 @@ public class DbManager {
     public boolean isBlacklisted(String url)  {
         String sql = "SELECT COUNT(*) FROM blacklist WHERE url = ?";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
-            pstmt.setString(1, url);;
+            pstmt.setString(1, url);
             try (ResultSet q = pstmt.executeQuery()) {
                 return q.getInt(1) > 0;
             }
@@ -135,5 +138,19 @@ public class DbManager {
                 logger.error("Error closing database connection: {}", e.getMessage(), e);
             }
         }
+    }
+
+    public List<String> findVersion(String groupId, String artifactId) throws SQLException {
+        String sql = "SELECT VERSION from imported_artifacts where group_id = ? and artifact_id = ?";
+        ArrayList<String> versions = new ArrayList<>();
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, groupId);
+            pstmt.setString(2, artifactId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                versions.add(rs.getString(1));
+            }
+        }
+        return versions;
     }
 }

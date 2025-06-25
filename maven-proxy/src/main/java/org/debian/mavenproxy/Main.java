@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
@@ -23,25 +24,36 @@ public class Main {
     public static void main(String[] args) throws IOException {
 
         Yaml yaml = new Yaml();
-        Map<String, Object> config = (Map<String, Object>) yaml.parse(new FileReader("config.yaml"));
-
+        Map<String, Object> config = yaml.load(new FileReader("config.yaml"));
+        List<String> ignoreLines = (List<String>)config.get("ignore");
+        List<String> replaceLines = (List<String>)config.get("replace");
         // Default configuration values
         int port = (Integer)config.get("port");
         boolean mapArtifacts = (Boolean)config.get("map-artifacts");
 
         String localRepoPath = "local-maven-proxy-cache";
+        String debianRepoPath = "debian-repo";
 
         String dbFilePath = "maven_proxy.db";
         // will fail to copy over the existing file
-        Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
+       // Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
         String[] remoteRepoUrls = new String[] {
             "https://repo.maven.apache.org/maven2/",
+            "https://dl.google.com/dl/android/maven2/",
+            "https://repo.gradle.org/gradle/repo",
             "https://plugins.gradle.org/m2/",
+            "https://repo.gradle.org/gradle/public",
+            "https://repo.gradle.org/gradle/javascript-public",
             "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-dependencies/"
         };
 
         // Validate local repository path
         Path repoPath = Paths.get(localRepoPath);
+        if (Files.exists(repoPath) && !Files.isDirectory(repoPath)) {
+            logger.error("Local repository path exists but is not a directory: {}", localRepoPath);
+            System.exit(1);
+        }
+        repoPath = Paths.get(debianRepoPath);
         if (Files.exists(repoPath) && !Files.isDirectory(repoPath)) {
             logger.error("Local repository path exists but is not a directory: {}", localRepoPath);
             System.exit(1);
@@ -59,8 +71,8 @@ public class Main {
             dbManager.initialize();
 
             // Initialize RepositoryManager
-            ArtifactMapper mapper = new ArtifactMapper(mapArtifacts);
-            RepositoryManager repositoryManager = new RepositoryManager(localRepoPath, "/usr/share/maven-repo", mapper);
+            ArtifactMapper mapper = new ArtifactMapper(mapArtifacts, dbManager, replaceLines, ignoreLines);
+            RepositoryManager repositoryManager = new RepositoryManager(localRepoPath, debianRepoPath, mapper);
 
             MavenRemoteService mavenRemoteService = new MavenRemoteService(remoteRepoUrls, repositoryManager, dbManager);
             // Initialize and start ProxyServer
@@ -70,9 +82,7 @@ public class Main {
             logger.info("Maven Proxy Server is running. Press Ctrl+C to stop.");
         } catch (IOException e) {
             logger.error("Failed to start Maven Proxy Server: {}", e.getMessage(), e);
-            if (dbManager != null) {
-                dbManager.close();
-            }
+            dbManager.close();
             System.exit(1);
         } catch (RuntimeException e) {
             logger.error("Application error during initialization: {}", e.getMessage(), e);

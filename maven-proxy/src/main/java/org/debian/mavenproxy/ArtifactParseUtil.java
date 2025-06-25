@@ -14,7 +14,7 @@ public class ArtifactParseUtil {
             type = requestPath.substring(typeLocation+1);
         }
 
-        String version = "";
+        String version;
         if (fileLocation > 0) {
             version = path.substring(fileLocation + 1);
         } else {
@@ -23,16 +23,12 @@ public class ArtifactParseUtil {
         path = path.substring(0, fileLocation);
         fileLocation = path.lastIndexOf("/");
 
-        String artifactId = "";
+        String artifactId;
         if (fileLocation > 0) {
             artifactId = path.substring(fileLocation + 1);
         } else {
             throw new RuntimeException("Invalid artifact request path "+ requestPath + " no artifact Id");
         }
         return new Artifact( path.substring(0, fileLocation).replace("/", "."), artifactId, version, type);
-    }
-
-    public static String getRequestPath(Artifact art) {
-        return art.groupId.replace(".", "/")  + "/" + art.name() + "/" + art.version();
     }
 }
