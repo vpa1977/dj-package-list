@@ -19,7 +19,9 @@ public class POMMapperTest {
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
+    <parent>
+        <groupId>parentNode</groupId>
+    </parent>
     <groupId>org.debian</groupId>
     <artifactId>maven-proxy</artifactId>
     <version>1.0.0-SNAPSHOT</version>
@@ -52,5 +54,6 @@ public class POMMapperTest {
         assertTrue(result.contains("<groupId>org.apache.httpcomponents</groupId>"));
         assertTrue(result.contains("<artifactId>httpclient</artifactId>"));
         assertTrue(result.contains("<version>${httpclient.version}</version>"));
+        assertTrue(result.contains("<groupId>parentNode</groupId>"));
     }
 }
