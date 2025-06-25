@@ -8,6 +8,13 @@
     <artifactId>maven-proxy</artifactId>
     <version>1.0.0-SNAPSHOT</version>
 
+    <repositories>
+        <repository>
+            <id>debian-repo</id>
+            <url>/usr/share/maven-repo</url>
+        </repository>
+    </repositories>
+
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -90,11 +97,9 @@
         </dependency>
 
         <dependency>
-            <groupId>org.debian</groupId>
+            <groupId>org.debian.maven</groupId>
             <artifactId>maven-repo-helper</artifactId>
             <version>debian</version>
-            <scope>system</scope>
-            <systemPath>/usr/share/java/maven-repo-helper.jar</systemPath>
         </dependency>
     </dependencies>
 
