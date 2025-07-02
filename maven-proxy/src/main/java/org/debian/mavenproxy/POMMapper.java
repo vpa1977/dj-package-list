@@ -1,6 +1,7 @@
 package org.debian.mavenproxy;
 
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -16,9 +17,31 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class POMMapper {
+
+    public static Map<ArtifactParseUtil.Artifact, String> getOriginalVersions(File inputFile)  throws IOException, ParserConfigurationException, SAXException {
+        // debian stores original dependency version in project/properties/debian.<groupId>.artifactId.originalVersion
+        DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+        Document doc = docBuilder.parse(inputFile);
+        Node project = doc.getElementsByTagName("project").item(0);
+        Node propertyNode = firstChildNode(project, "properties");
+        NodeList nl = propertyNode.getChildNodes();
+        HashMap<ArtifactParseUtil.Artifact, String> arts = new HashMap<>();
+        for (int i = 0; i < nl.getLength(); ++i) {
+            Node n = nl.item(i);
+            if (n.getNodeName().endsWith(".originalVersion")) {
+                ArtifactParseUtil.Artifact art = parseOriginalVersion(n.getNodeName());
+                String originalVersion = n.getTextContent();
+                arts.put(art, originalVersion);
+            }
+        }
+        return arts;
+    }
 
     public static void mapPom(
             File inputFile,
@@ -59,5 +82,26 @@ public class POMMapper {
         StreamResult result = new StreamResult(outputFile);
 
         transformer.transform(source, result);
+    }
+
+    private static ArtifactParseUtil.Artifact parseOriginalVersion(String nodeName) {
+        if (!nodeName.startsWith("debian.")) {
+            throw new RuntimeException(nodeName + " should start with debian.");
+        }
+        nodeName = nodeName.substring("debian.".length());
+        nodeName = nodeName.substring(0, nodeName.lastIndexOf("."));
+        String groupId = nodeName.substring(0, nodeName.lastIndexOf("."));
+        String artifactId = nodeName.substring(nodeName.lastIndexOf(".") + 1);
+        return new ArtifactParseUtil.Artifact(groupId, artifactId, "debian", "pom");
+    }
+
+    private static Node firstChildNode(Node n, String nodeName) {
+        NodeList nl = n.getChildNodes();
+        for (int i = 0 ;i < nl.getLength() ; ++i) {
+            if (nodeName.equals(nl.item(i).getNodeName())) {
+                return nl.item(i);
+            }
+        }
+        return null;
     }
 }
