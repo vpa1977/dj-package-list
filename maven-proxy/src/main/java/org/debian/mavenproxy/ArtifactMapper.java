@@ -9,6 +9,7 @@ import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
@@ -39,7 +40,7 @@ public class ArtifactMapper {
      * @param path - original request path
      * @return RemappedArtifact
      */
-    public RemappedArtifact mapRequestPath(String path) {
+    public RemappedArtifact mapRequestPath(Path debianPath, String path) {
         ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(path);
         if (!map) {
             return new RemappedArtifact(art, path, path);
@@ -52,21 +53,17 @@ public class ArtifactMapper {
             if (!ignoreRuleSet.findMatchingRules(new Dependency(art.groupId(), art.name(), art.type(), art.version())).isEmpty()){
                 return new RemappedArtifact(art, path, "placeholder/gradle-dependency-placeholder-1.0."+ ext);
             }
+
             List<String> versions = dbManager.findVersion(art.groupId(), art.name());
-            return new RemappedArtifact(art, path, path);
-/*
-            // apply maven.rules here.
-            // lets use simplistic replacement for now
-            if (versions.contains("debian")) {
-                String newFileName = art.name() + "-debian." + ext;
-                return new RemappedArtifact(art, path, ArtifactParseUtil.getRequestPath(art.groupId(), art.name(), "debian", newFileName));
-            } else if (!versions.isEmpty()) {
-                String newFileName = art.name() + "-"+versions.getFirst()+"." + ext;
-                return new RemappedArtifact(art, path, ArtifactParseUtil.getRequestPath(art.groupId(), art.name(), versions.getFirst(), newFileName));
+            for (var version : versions) {
+                String newFileName = art.name() + "-"+ version + "." + ext;
+                var testPath = art.groupId().replace(".", "/") + "/" + art.name() + "/" +  version + "/" + newFileName;
+                if (debianPath.resolve(testPath).toFile().exists()) {
+                    return new RemappedArtifact(art, path, testPath);
+                }
             }
 
             return new RemappedArtifact(art, path, path);
- */
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }

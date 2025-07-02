@@ -11,7 +11,10 @@
     <repositories>
         <repository>
             <id>debian-repo</id>
-            <url>/usr/share/maven-repo</url>
+            <url>file:///usr/share/maven-repo</url>
+            <releases>
+                <checksumPolicy>ignore</checksumPolicy>
+            </releases>
         </repository>
     </repositories>
 

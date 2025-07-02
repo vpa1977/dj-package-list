@@ -75,7 +75,7 @@ public class RepositoryManager {
         if (relativePath.startsWith("/")) {
             relativePath = relativePath.substring(1);
         }
-        RemappedArtifact remappedArtifact = artifactMapper.mapRequestPath(relativePath);
+        RemappedArtifact remappedArtifact = artifactMapper.mapRequestPath(debianPath, relativePath);
 
         Path filePath = localRepositoryPath.resolve(remappedArtifact.newRequestPath()).normalize();
         if (!filePath.startsWith(localRepositoryPath)) {
