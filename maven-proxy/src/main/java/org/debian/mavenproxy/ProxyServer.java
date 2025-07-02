@@ -54,8 +54,9 @@ public class ProxyServer implements HttpRequestHandler {
         if (server != null) {
             server.shutdown(5, TimeUnit.SECONDS); // Allow 5 seconds for graceful shutdown
             logger.info("Maven Proxy Server shutting down.");
+            server = null;
+            remoteService.shutdown();
         }
-        remoteService.shutdown();
     }
 
     @Override

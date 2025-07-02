@@ -79,7 +79,9 @@ public class Main {
             ProxyServer proxyServer = new ProxyServer(repositoryManager, mavenRemoteService, port);
             proxyServer.start();
 
-            logger.info("Maven Proxy Server is running. Press Ctrl+C to stop.");
+            logger.info("Maven Proxy Server is running. Press any to stop.");
+            System.in.read();
+            proxyServer.shutdown();
         } catch (IOException e) {
             logger.error("Failed to start Maven Proxy Server: {}", e.getMessage(), e);
             dbManager.close();
