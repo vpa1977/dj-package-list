@@ -2,7 +2,9 @@ package org.debian.mavenproxy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -16,6 +18,7 @@ import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.HexFormat;
 
 public class RepositoryManager {
@@ -24,6 +27,7 @@ public class RepositoryManager {
     private final Path localRepositoryPath;
     private final Path debianPath;
     private final ArtifactMapper artifactMapper;
+    private HashMap<ArtifactParseUtil.Artifact, String> originalVersions = new HashMap<>();
 
     public RepositoryManager(String localRepositoryBasePath, String debianPath, ArtifactMapper mapper) throws IOException {
         this.artifactMapper = mapper;
@@ -93,6 +97,13 @@ public class RepositoryManager {
             return null;
         }
 
+        // debian pom found. Record original versions for remote retrieval
+        try {
+            artifactMapper.readDebianVersions(filePath);
+        } catch (IOException | ParserConfigurationException | SAXException e) {
+            throw new RuntimeException(e);
+        }
+
         file = filePath.toFile();
         return file.exists() ? artifactMapper.mapFile(remappedArtifact.art(), file) : null;
     }
@@ -134,5 +145,14 @@ public class RepositoryManager {
         DigestInputStream dis = new DigestInputStream(bis, md);
         HexFormat hex = HexFormat.of();
         return hex.formatHex(dis.getMessageDigest().digest()).toLowerCase();
+    }
+
+    public String restoreOriginalVersion(String requestPath) {
+        ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(requestPath);
+        String version = originalVersions.get(art);
+        if (version == null) {
+            return requestPath;
+        }
+        return ArtifactParseUtil.mapRequestPath(requestPath, version);
     }
 }

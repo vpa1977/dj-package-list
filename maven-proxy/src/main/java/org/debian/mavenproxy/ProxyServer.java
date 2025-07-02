@@ -83,6 +83,8 @@ public class ProxyServer implements HttpRequestHandler {
             return;
         }
 
+        requestPath = repositoryManager.restoreOriginalVersion(requestPath);
+
         logger.info("Artifact not found locally, attempting to fetch from remote: {}", requestPath);
         remoteService.fetchAndServeFromRemote(requestPath, response);
     }

@@ -23,6 +23,7 @@ public class ArtifactMapper {
     private final DependencyRuleSet ignoreRuleSet;
     private final DependencyRuleSet replaceRuleSet;
     private final HashMap<ArtifactParseUtil.Artifact, File> mappedFiles = new HashMap<>();
+    private final HashMap<ArtifactParseUtil.Artifact, String> originalVersions = new HashMap<>();
 
     public ArtifactMapper(boolean map, DbManager dbManager, List<String> replaceRules, List<String> ignoreRules) throws IOException {
         this.map = map;
@@ -56,8 +57,7 @@ public class ArtifactMapper {
 
             List<String> versions = dbManager.findVersion(art.groupId(), art.name());
             for (var version : versions) {
-                String newFileName = art.name() + "-"+ version + "." + ext;
-                var testPath = art.groupId().replace(".", "/") + "/" + art.name() + "/" +  version + "/" + newFileName;
+                String testPath = ArtifactParseUtil.mapRequestPath(path, version);
                 if (debianPath.resolve(testPath).toFile().exists()) {
                     dbManager.addMapping(art.groupId(), art.name(), art.version(), version);
                     return new RemappedArtifact(art, path, testPath);
@@ -99,4 +99,7 @@ public class ArtifactMapper {
         }
     }
 
+    public void readDebianVersions(Path filePath) throws IOException, ParserConfigurationException, SAXException {
+        originalVersions.putAll(POMMapper.getOriginalVersions(filePath.toFile()));
+    }
 }
