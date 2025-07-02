@@ -31,4 +31,16 @@ public class ArtifactParseUtil {
         }
         return new Artifact( path.substring(0, fileLocation).replace("/", "."), artifactId, version, type);
     }
+
+    public static String mapRequestPath(String requestPath, String version) {
+        boolean leadingSlash = false;
+        if (requestPath.startsWith("/")) {
+            leadingSlash = true;
+        }
+        ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(requestPath);
+        String filePath = requestPath.substring(requestPath.lastIndexOf("/")+1);
+        String ext = filePath.substring(filePath.lastIndexOf(".")+1);
+        String newFileName = art.name() + "-"+ version + "." + ext;
+        return (leadingSlash ? "/" : "") + art.groupId().replace(".", "/") + "/" + art.name() + "/" +  version + "/" + newFileName;
+    }
 }

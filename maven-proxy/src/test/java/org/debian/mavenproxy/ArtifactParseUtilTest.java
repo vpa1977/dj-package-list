@@ -19,4 +19,15 @@ public class ArtifactParseUtilTest {
         assertEquals("2.0.21", art.version() );
         assertEquals("module", art.type() );
     }
+
+    @Test
+    public void testMapRequestPath() {
+        String requestPath = "/commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.pom";
+        String result = ArtifactParseUtil.mapRequestPath(requestPath, "debian");
+        assertEquals("/commons-collections/commons-collections/debian/commons-collections-debian.pom", result);
+
+        requestPath = "commons-collections/commons-collections/3.2.2/commons-collections-3.2.2.pom";
+        result = ArtifactParseUtil.mapRequestPath(requestPath, "debian");
+        assertEquals("commons-collections/commons-collections/debian/commons-collections-debian.pom", result);
+    }
 }
