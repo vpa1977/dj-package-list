@@ -68,6 +68,13 @@ public class DbManager {
                          "remoteUrl TEXT NOT NULL," + // Full URL of the artifact
                          "PRIMARY KEY(groupId, artifactId, version)" + // Full URL of the artifact
                          ")");
+            stmt.execute("CREATE TABLE IF NOT EXISTS artifacts_version_map (" +
+                    "groupId TEXT," +
+                    "artifactId TEXT," +
+                    "version TEXT," +
+                    "foundVersion" +
+                    "PRIMARY KEY(groupId, artifactId, version)" +
+                    ")");
         }
     }
 
@@ -152,5 +159,15 @@ public class DbManager {
             }
         }
         return versions;
+    }
+
+    public void addMapping(String groupId, String artifactId, String origVersion, String version) throws SQLException  {
+        String sql = "INSERT INTO artifacts_version_map (artifactId, groupId, version, foundVersion) VALUES (?, ?, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, groupId);
+            pstmt.setString(2, artifactId);
+            pstmt.setString(3, origVersion);
+            pstmt.setString(4, version);
+        }
     }
 }

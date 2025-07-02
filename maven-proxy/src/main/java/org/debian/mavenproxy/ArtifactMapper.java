@@ -59,6 +59,7 @@ public class ArtifactMapper {
                 String newFileName = art.name() + "-"+ version + "." + ext;
                 var testPath = art.groupId().replace(".", "/") + "/" + art.name() + "/" +  version + "/" + newFileName;
                 if (debianPath.resolve(testPath).toFile().exists()) {
+                    dbManager.addMapping(art.groupId(), art.name(), art.version(), version);
                     return new RemappedArtifact(art, path, testPath);
                 }
             }
