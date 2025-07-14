@@ -1,7 +1,10 @@
 port: 8080
-map-artifacts: true
-
-
+map-artifacts: false
+debian-repo: debian-repo
+#debian-repo: _debian_repo
+maven-proxy-cache: local-maven-proxy-cache
+replace:
+ignore:
 gradle:
   replace:
   ignore:
@@ -17,3 +20,4 @@ gradle:
     - org.scala-sbt * * * * *
   #  - org.ysb33r.gradle * * * * *
     - org.openmbee.junit * * * * *
+
