@@ -18,8 +18,10 @@ import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.Map;
 
 public class RepositoryManager {
 
@@ -99,8 +101,10 @@ public class RepositoryManager {
 
         // debian pom found. Record original versions for remote retrieval
         try {
-            artifactMapper.readDebianVersions(filePath);
-        } catch (IOException | ParserConfigurationException | SAXException e) {
+            if (filePath.toFile().exists() && filePath.toString().endsWith("pom")) {
+                artifactMapper.readDebianVersions(filePath);
+            }
+        } catch (SQLException | IOException | ParserConfigurationException | SAXException e) {
             throw new RuntimeException(e);
         }
 
@@ -149,7 +153,7 @@ public class RepositoryManager {
 
     public String restoreOriginalVersion(String requestPath) {
         ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(requestPath);
-        String version = originalVersions.get(art);
+        String version = artifactMapper.lookupDebianVersion(art.groupId(), art.name());
         if (version == null) {
             return requestPath;
         }

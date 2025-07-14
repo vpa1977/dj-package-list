@@ -34,6 +34,9 @@ public class POMMapper {
         HashMap<ArtifactParseUtil.Artifact, String> arts = new HashMap<>();
         for (int i = 0; i < nl.getLength(); ++i) {
             Node n = nl.item(i);
+            if ("debian.originalVersion".equals(n.getNodeName())) {
+                continue; // we have already got this pom, no need to record
+            }
             if (n.getNodeName().endsWith(".originalVersion")) {
                 ArtifactParseUtil.Artifact art = parseOriginalVersion(n.getNodeName());
                 String originalVersion = n.getTextContent();

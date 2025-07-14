@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Translates requested artifact to Debian coordiantes
@@ -23,7 +24,6 @@ public class ArtifactMapper {
     private final DependencyRuleSet ignoreRuleSet;
     private final DependencyRuleSet replaceRuleSet;
     private final HashMap<ArtifactParseUtil.Artifact, File> mappedFiles = new HashMap<>();
-    private final HashMap<ArtifactParseUtil.Artifact, String> originalVersions = new HashMap<>();
 
     public ArtifactMapper(boolean map, DbManager dbManager, List<String> replaceRules, List<String> ignoreRules) throws IOException {
         this.map = map;
@@ -99,7 +99,19 @@ public class ArtifactMapper {
         }
     }
 
-    public void readDebianVersions(Path filePath) throws IOException, ParserConfigurationException, SAXException {
-        originalVersions.putAll(POMMapper.getOriginalVersions(filePath.toFile()));
+    public void readDebianVersions(Path filePath) throws IOException, ParserConfigurationException, SAXException, SQLException {
+        Map<ArtifactParseUtil.Artifact, String> originalVersions = POMMapper.getOriginalVersions(filePath.toFile());
+        for (var entry : originalVersions.entrySet()) {
+            dbManager.storeDebianToVersion(entry.getKey().groupId(), entry.getKey().name(), entry.getValue());
+        }
+
+    }
+
+    public String lookupDebianVersion(String groupId, String artifactId) {
+        try {
+            return dbManager.readOriginalVersion(groupId, artifactId);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

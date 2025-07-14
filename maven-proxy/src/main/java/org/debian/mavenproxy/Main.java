@@ -31,8 +31,8 @@ public class Main {
         int port = (Integer)config.get("port");
         boolean mapArtifacts = (Boolean)config.get("map-artifacts");
 
-        String localRepoPath = "local-maven-proxy-cache";
-        String debianRepoPath = "debian-repo";
+        String localRepoPath = (String) config.get("maven-proxy-cache");
+        String debianRepoPath = (String) config.get("debian-repo");
 
         String dbFilePath = "maven_proxy.db";
         // will fail to copy over the existing file

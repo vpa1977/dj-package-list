@@ -72,7 +72,14 @@ public class DbManager {
                     "groupId TEXT," +
                     "artifactId TEXT," +
                     "version TEXT," +
-                    "foundVersion" +
+                    "foundVersion TEXT," +
+                    "PRIMARY KEY(groupId, artifactId, version)" +
+                    ")");
+
+            stmt.execute("CREATE TABLE IF NOT EXISTS debian_to_version ("  +
+                    "groupId TEXT," +
+                    "artifactId TEXT," +
+                    "version TEXT," +
                     "PRIMARY KEY(groupId, artifactId, version)" +
                     ")");
         }
@@ -168,6 +175,38 @@ public class DbManager {
             pstmt.setString(2, artifactId);
             pstmt.setString(3, origVersion);
             pstmt.setString(4, version);
+        }
+    }
+
+    public void storeDebianToVersion(String groupId, String artifactId, String version) throws SQLException  {
+        String sql = "INSERT INTO debian_to_version (artifactId, groupId, version) VALUES (?, ?, ?)";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, groupId);
+            pstmt.setString(2, artifactId);
+            pstmt.setString(3, version);
+        }
+    }
+
+    public String readOriginalVersion(String groupId, String artifactId) throws SQLException {
+        String sql = "SELECT VERSION from debian_to_Version WHERE groupId = ? and artifactId = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setString(1, groupId);
+            pstmt.setString(2, artifactId);
+            ResultSet rs = pstmt.executeQuery();
+            if (!rs.next()) {
+                // try to read imported_artifacts
+                String importedSql = "SELECT VERSION from imported_artifacts WHERE group_id = ? and artifact_id = ? and version <> 'debian'";
+                try (PreparedStatement importedPstmt = connection.prepareStatement(importedSql)) {
+                    importedPstmt.setString(1, groupId);
+                    importedPstmt.setString(2, artifactId);
+                    ResultSet rsImported = importedPstmt.executeQuery();
+                    if (rsImported.next()) {
+                        return rsImported.getString(1);
+                    }
+                }
+                return null;
+            }
+            return rs.getString(1);
         }
     }
 }
