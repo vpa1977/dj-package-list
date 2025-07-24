@@ -1,4 +1,6 @@
 target/
 .idea
 debstore
-.db
+*.db
+.gradle
+.gradle-cache
