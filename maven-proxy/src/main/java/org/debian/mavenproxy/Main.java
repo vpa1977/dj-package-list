@@ -2,6 +2,7 @@ package org.debian.mavenproxy;
 
 import org.debian.mavenproxy.build.BuildExecutor;
 import org.debian.mavenproxy.build.GradleBuildExecutor;
+import org.debian.mavenproxy.build.MavenBuildExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,6 +87,8 @@ public class Main {
             BuildExecutor executor = null;
             if ("gradle".equals(buildSystem)) {
                 executor = new GradleBuildExecutor(buildNode);
+            } else if ("maven".equals(buildSystem)) {
+                executor = new MavenBuildExecutor(buildNode);
             } else {
                 throw new RuntimeException("Unsupported build system");
             }
