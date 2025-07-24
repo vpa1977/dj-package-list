@@ -1,5 +1,7 @@
 package org.debian.mavenproxy;
 
+import org.debian.mavenproxy.build.BuildExecutor;
+import org.debian.mavenproxy.build.GradleBuildExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,9 +36,9 @@ public class Main {
         String localRepoPath = (String) config.get("maven-proxy-cache");
         String debianRepoPath = (String) config.get("debian-repo");
 
-        String dbFilePath = "maven_proxy.db";
+        String dbFilePath = "maven_proxy" + System.currentTimeMillis() + ".db";
         // will fail to copy over the existing file
-       // Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
+        Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
         String[] remoteRepoUrls = new String[] {
             "https://repo.maven.apache.org/maven2/",
             "https://dl.google.com/dl/android/maven2/",
@@ -79,15 +81,25 @@ public class Main {
             ProxyServer proxyServer = new ProxyServer(repositoryManager, mavenRemoteService, port);
             proxyServer.start();
 
+            Map<String, Object> buildNode = (Map<String, Object>) config.get("build");
+            String buildSystem = (String)buildNode.get("type");
+            BuildExecutor executor = null;
+            if ("gradle".equals(buildSystem)) {
+                executor = new GradleBuildExecutor(buildNode);
+            } else {
+                throw new RuntimeException("Unsupported build system");
+            }
             logger.info("Maven Proxy Server is running. Press any to stop.");
-            System.in.read();
+            if (executor.run() != 0 ) {
+                throw new RuntimeException("Build failed");
+            }
             proxyServer.shutdown();
         } catch (IOException e) {
             logger.error("Failed to start Maven Proxy Server: {}", e.getMessage(), e);
             dbManager.close();
             System.exit(1);
-        } catch (RuntimeException e) {
-            logger.error("Application error during initialization: {}", e.getMessage(), e);
+        } catch (RuntimeException | InterruptedException e) {
+            logger.error("Application error: {}", e.getMessage(), e);
             if (dbManager != null) {
                 dbManager.close();
             }

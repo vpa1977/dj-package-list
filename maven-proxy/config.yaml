@@ -3,6 +3,13 @@ map-artifacts: false
 debian-repo: debian-repo
 #debian-repo: _debian_repo
 maven-proxy-cache: local-maven-proxy-cache
+build:
+  type: gradle
+  helper-path: java
+  build-executable: /home/vladimirp/gradle-8.12.1/bin/gradle
+  workingDirectory: /home/vladimirp/git/gradle-upgrade/binary_boot/kotlinx-coroutines-bootstrap
+  command:
+    - publishToMavenLocal
 replace:
 ignore:
 gradle:
