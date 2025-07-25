@@ -13,7 +13,7 @@ import java.io.InputStream;
 
 public class GetRepositoryResponse implements IRepositoryResponse {
     private final AbstractRepository source;
-    private ContentTypes contentTypes;
+    private ContentTypes contentTypes = new ContentTypes();
 
     public GetRepositoryResponse(AbstractRepository source) {
         this.source = source;
@@ -27,7 +27,6 @@ public class GetRepositoryResponse implements IRepositoryResponse {
             String contentType = contentTypes.determineContentType(fileName);
             response.setStatusCode(HttpStatus.SC_OK);
             response.setHeader("Content-Type", contentType);
-            response.setHeader("Content-Length", "" + data.length);
             response.setEntity(new ByteArrayEntity(data));
         } catch (IOException e) {
             throw new RuntimeException(e);

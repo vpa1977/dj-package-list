@@ -1,30 +1,23 @@
 port: 8080
-map-artifacts: false
-debian-repo: debian-repo
-#debian-repo: _debian_repo
+map-artifacts: true
+debian-repo: /usr/share/maven-repo
 maven-proxy-cache: local-maven-proxy-cache
+remotes:
+  - https://repo.maven.apache.org/maven2/
+  - https://dl.google.com/dl/android/maven2/
+  - https://repo.gradle.org/gradle/repo/
+  - https://plugins.gradle.org/m2/
+  - https://repo.gradle.org/gradle/public/
+  - https://repo.gradle.org/gradle/javascript-public/
+  - https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-dependencies/
+  - https://maven.repository.redhat.com/ga/
 build:
-  type: gradle
-  helper-path: java
-  build-executable: /home/vladimirp/gradle-8.12.1/bin/gradle
-  workingDirectory: /home/vladimirp/git/gradle-upgrade/binary_boot/kotlinx-coroutines-bootstrap
+  type: maven
+  helper-path: /usr/share/maven-repo # maven-repo-helper lives here
+  build-executable: /usr/share/maven/bin/mvn
+  workingDirectory: /home/vladimirp/git/make-oss-25/flink/
   command:
-    - publishToMavenLocal
-replace:
-ignore:
-gradle:
-  replace:
-  ignore:
-    - com.autonomousapps * * * * *
-    - com.esotericsoftware.minlog * * * * *
-  #  - com.github.javaparser * * * * *
-  #  - com.github.siom79.japicmp * * * * *
-    - com.google.apis * * * * *
-    - com.openhtmltopdf * * * * *
-    - com.vladsch.flexmark * * * * *
-    - gradle.plugin.org.jetbrains.gradle.plugin.idea-ext * * * * *
-  #  - org.asciidoctor * * * * *
-    - org.scala-sbt * * * * *
-  #  - org.ysb33r.gradle * * * * *
-    - org.openmbee.junit * * * * *
-
+    - package
+    - -DskipTests
+    - -Djdk17
+    - -Pjava17-target

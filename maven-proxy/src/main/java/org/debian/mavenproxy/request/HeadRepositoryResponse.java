@@ -9,7 +9,7 @@ import java.io.FileNotFoundException;
 
 public class HeadRepositoryResponse implements IRepositoryResponse {
     private final AbstractRepository source;
-    private ContentTypes contentTypes;
+    private ContentTypes contentTypes = new ContentTypes();
 
     public HeadRepositoryResponse(AbstractRepository source) {
         this.source = source;

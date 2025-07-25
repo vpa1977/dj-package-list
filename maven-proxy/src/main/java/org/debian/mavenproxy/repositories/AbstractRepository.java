@@ -17,7 +17,7 @@ public abstract class AbstractRepository {
         try {
             return getArtifact(groupId, artifactId, version, fileName).getInputStream().readAllBytes().length;
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            throw new FileNotFoundException(e.getMessage());
         }
     }
 

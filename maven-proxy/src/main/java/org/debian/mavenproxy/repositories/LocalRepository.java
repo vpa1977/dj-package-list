@@ -27,12 +27,14 @@ public class LocalRepository extends AbstractRepository {
         if (fileName.endsWith(".sha1")) {
             return;
         }
-        Path output = Path.of(this.getBase(), groupId.replace(".", "/"), artifactId, version, fileName);
+        Path directory = Path.of(this.getBase(), groupId.replace(".", "/"), artifactId, version);
+        directory.toFile().mkdirs();
+        Path output = directory.resolve(fileName);
         try (is) {
             byte[] data = is.readAllBytes();
             Files.write(output, data);
             Path sha1 = Path.of(output + ".sha1");
-                Files.writeString(sha1, calculateChecksum(data, "SHA1"));
+            Files.writeString(sha1, calculateChecksum(data, "SHA1"));
         }
         catch (IOException | NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
@@ -46,10 +48,9 @@ public class LocalRepository extends AbstractRepository {
     }
 
     private String calculateChecksum(byte[] data, String algorithm) throws NoSuchAlgorithmException {
-        ByteArrayInputStream bis = new ByteArrayInputStream(data);
-        MessageDigest md = MessageDigest.getInstance(algorithm);
-        DigestInputStream dis = new DigestInputStream(bis, md);
+        MessageDigest messageDigest = MessageDigest.getInstance(algorithm);
+        messageDigest.update(data);
         HexFormat hex = HexFormat.of();
-        return hex.formatHex(dis.getMessageDigest().digest()).toLowerCase();
+        return hex.formatHex(messageDigest.digest()).toLowerCase();
     }
 }

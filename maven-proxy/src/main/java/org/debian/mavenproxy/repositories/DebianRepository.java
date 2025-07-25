@@ -4,6 +4,8 @@ import org.debian.maven.repo.Dependency;
 import org.debian.maven.repo.DependencyRuleSet;
 import org.debian.mavenproxy.Artifact;
 import org.debian.mavenproxy.RuleParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -27,9 +29,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 public class DebianRepository extends AbstractRepository {
+    private static final Logger logger = LoggerFactory.getLogger(LocalRepository.class);
 
     private final DependencyRuleSet ignoreRuleSet;
     private final DependencyRuleSet replaceRuleSet;
@@ -42,9 +47,13 @@ public class DebianRepository extends AbstractRepository {
 
     @Override
     public RepositoryContent getArtifact(String groupId, String artifactId, String version, String fileName) throws FileNotFoundException {
+        if (groupId.length() > 0) {
+            throw new FileNotFoundException("foobar");
+        }
         if (fileName.endsWith(".sha1")) {
             throw new RuntimeException("Unable to request sha1 from Debian Repository");
         }
+        // skip maven repository for maven plugins
         String ext = fileName.substring(fileName.lastIndexOf(".")+1);
 
         if (!ignoreRuleSet.findMatchingRules(new Dependency(groupId, artifactId, ext, version)).isEmpty()) {
@@ -61,26 +70,41 @@ public class DebianRepository extends AbstractRepository {
         if (children == null) {
             throw new FileNotFoundException(testPath.toString());
         }
-        for (File f : children){
-            // improve this later, for now we just use the first one
-            String foundVersion = f.getName(); // do not do anything yet
 
-            String newFileName = artifactId + "-"+ version + "." + ext;
-            Path requestedPath = f.toPath().resolve(newFileName);
-            if ("pom".equals(ext)) {
-                try {
-                    return new RepositoryContent(new Artifact(groupId, artifactId, foundVersion, ext), new ByteArrayInputStream(mapPom(requestedPath.toFile(), groupId, artifactId, version)));
-                }
-                catch (IOException | ParserConfigurationException | SAXException| TransformerException e) {
-                    throw new RuntimeException(e.getMessage());
-                }
-            } else  if ("jar".equals(ext)) {
-                return new RepositoryContent(new Artifact(groupId, artifactId, foundVersion, ext), new FileInputStream(requestedPath.toFile()));
-            } else {
-                throw new RuntimeException("Unsupported extension "+ ext + " file "+ f);
+        String foundVersion = getDebianVersion(version, children);
+        String newFileName = artifactId + "-"+ foundVersion + "." + ext;
+        Path requestedPath = Path.of(getBase(), groupId.replace(".", "/"), artifactId, foundVersion, newFileName);
+        logger.info("Reading file from debian repository "+ requestedPath + " for artifact "+ groupId + ":"+ artifactId + ":"+ version);
+        if ("pom".equals(ext)) {
+            try {
+                return new RepositoryContent(new Artifact(groupId, artifactId, foundVersion, ext), new ByteArrayInputStream(mapPom(requestedPath.toFile(), groupId, artifactId, version)));
             }
+            catch (IOException | ParserConfigurationException | SAXException| TransformerException e) {
+                throw new FileNotFoundException(e.getMessage());
+            }
+        } else  if ("jar".equals(ext)) {
+            return new RepositoryContent(new Artifact(groupId, artifactId, foundVersion, ext), new FileInputStream(requestedPath.toFile()));
         }
-        throw new FileNotFoundException(testPath.toString());
+        throw new RuntimeException("Unsupported extension "+ ext + " file "+ requestedPath);
+    }
+
+    private static String getDebianVersion(String version, File[] children) throws FileNotFoundException {
+        HashSet<String> foundVersions = new HashSet<>();
+        for (File f : children){
+            foundVersions.add(f.getName());
+        }
+        if (foundVersions.isEmpty()) {
+            throw new FileNotFoundException(version);
+        }
+        String foundVersion = "debian";
+        if (foundVersions.contains(version)) {
+            foundVersion = version;
+        } else if (foundVersions.contains("debian")) {
+            foundVersion = "debian";
+        } else {
+            foundVersion = foundVersions.iterator().next();
+        }
+        return foundVersion;
     }
 
     public static byte[] mapPom(

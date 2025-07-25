@@ -42,15 +42,7 @@ public class Main {
         String dbFilePath = "maven_proxy" + System.currentTimeMillis() + ".db";
         // will fail to copy over the existing file
         Files.copy(Paths.get("artifacts.db"), Paths.get(dbFilePath));
-        String[] remoteRepoUrls = new String[] {
-            "https://repo.maven.apache.org/maven2/",
-            "https://dl.google.com/dl/android/maven2/",
-            "https://repo.gradle.org/gradle/repo",
-            "https://plugins.gradle.org/m2/",
-            "https://repo.gradle.org/gradle/public",
-            "https://repo.gradle.org/gradle/javascript-public",
-            "https://maven.pkg.jetbrains.space/kotlin/p/kotlin/kotlin-dependencies/"
-        };
+        List<String> remoteRepoUrls = (List<String>) config.get("remotes");
 
         // Validate local repository path
         Path repoPath = Paths.get(localRepoPath);
@@ -79,8 +71,8 @@ public class Main {
             // Initialize and start ProxyServer
             RepositoryManager repositoryManager =
                     new RepositoryManager(localRepoPath,
-                            debianRepoPath,
-                            Arrays.asList(remoteRepoUrls),
+                            mapArtifacts  ? debianRepoPath : null,
+                            remoteRepoUrls,
                             ignoreLines,
                             replaceLines);
             ProxyServer proxyServer = new ProxyServer(repositoryManager,  port);
