@@ -21,7 +21,6 @@ import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HexFormat;
-import java.util.Map;
 
 public class RepositoryManager {
 
@@ -29,7 +28,7 @@ public class RepositoryManager {
     private final Path localRepositoryPath;
     private final Path debianPath;
     private final ArtifactMapper artifactMapper;
-    private HashMap<ArtifactParseUtil.Artifact, String> originalVersions = new HashMap<>();
+    private final HashMap<Artifact, String> originalVersions = new HashMap<>();
 
     public RepositoryManager(String localRepositoryBasePath, String debianPath, ArtifactMapper mapper) throws IOException {
         this.artifactMapper = mapper;
@@ -152,7 +151,7 @@ public class RepositoryManager {
     }
 
     public String restoreOriginalVersion(String requestPath) {
-        ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(requestPath);
+        Artifact art = ArtifactParseUtil.parse(requestPath);
         String version = artifactMapper.lookupDebianVersion(art.groupId(), art.name());
         if (version == null) {
             return requestPath;
