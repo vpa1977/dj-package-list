@@ -4,7 +4,6 @@ import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.entity.ByteArrayEntity;
 import org.debian.mavenproxy.Artifact;
-import org.debian.mavenproxy.ContentTypes;
 import org.debian.mavenproxy.repositories.AbstractRepository;
 import org.debian.mavenproxy.repositories.RepositoryContent;
 

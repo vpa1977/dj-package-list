@@ -3,7 +3,6 @@ package org.debian.mavenproxy.request;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.debian.mavenproxy.Artifact;
-import org.debian.mavenproxy.ContentTypes;
 import org.debian.mavenproxy.repositories.AbstractRepository;
 
 import java.io.FileNotFoundException;

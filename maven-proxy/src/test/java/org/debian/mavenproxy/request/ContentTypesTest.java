@@ -1,4 +1,4 @@
-package org.debian.mavenproxy;
+package org.debian.mavenproxy.request;
 
 import org.junit.jupiter.api.Test;
 

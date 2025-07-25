@@ -7,27 +7,30 @@ import org.apache.http.impl.bootstrap.HttpServer;
 import org.apache.http.impl.bootstrap.ServerBootstrap;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.protocol.HttpRequestHandler;
+import org.debian.mavenproxy.request.GetRepositoryResponse;
+import org.debian.mavenproxy.request.HeadRepositoryResponse;
+import org.debian.mavenproxy.request.RepositoryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class ProxyServer implements HttpRequestHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
-    private final OldRepositoryManager repositoryManager;
     private final int port;
-    private final MavenRemoteService remoteService;
+    private final RepositoryManager repositoryManager;
     private HttpServer server;
-    private final ContentTypes contentTypes = new ContentTypes();
+    private HeadRepositoryResponse headRepositoryResponse;
+    private GetRepositoryResponse getRepositoryResponse;
 
-    public ProxyServer(OldRepositoryManager repositoryManager, MavenRemoteService remoteService, int port) {
+    public ProxyServer(RepositoryManager repositoryManager, int port) {
         this.repositoryManager = repositoryManager;
         // Ensure remoteRepositoryUrl ends with a slash for consistent path concatenation
         this.port = port;
-        this.remoteService = remoteService;
+        this.headRepositoryResponse = new HeadRepositoryResponse(repositoryManager.getLocalRepository());
+        this.getRepositoryResponse = new GetRepositoryResponse(repositoryManager.getLocalRepository());
     }
 
     public void start() throws IOException {
@@ -55,14 +58,14 @@ public class ProxyServer implements HttpRequestHandler {
             server.shutdown(5, TimeUnit.SECONDS); // Allow 5 seconds for graceful shutdown
             logger.info("Maven Proxy Server shutting down.");
             server = null;
-            remoteService.shutdown();
         }
     }
 
     @Override
     public synchronized void handle(HttpRequest request, HttpResponse response, HttpContext context) throws IOException {
+        String requestPath = request.getRequestLine().getUri();
         if (request.getRequestLine().getMethod().equalsIgnoreCase("HEAD")) {
-            remoteService.headFromRemote(request.getRequestLine().getUri(), response);
+            repositoryManager.handleRequest(requestPath, response, headRepositoryResponse);
             return;
         }
 
@@ -70,22 +73,6 @@ public class ProxyServer implements HttpRequestHandler {
             response.setStatusCode(HttpStatus.SC_METHOD_NOT_ALLOWED);
             return;
         }
-
-        String requestPath = request.getRequestLine().getUri();
-        logger.debug("Received request for: {}", requestPath);
-        File artifactFile = repositoryManager.getArtifact(requestPath);
-        if (artifactFile != null) {
-            logger.info("Serving artifact from local cache: {}", requestPath);
-            response.setStatusCode(HttpStatus.SC_OK);
-            String contentType = contentTypes.determineContentType(requestPath);
-            response.setHeader("Content-Type", contentType);
-            response.setEntity(new org.apache.http.entity.FileEntity(artifactFile));
-            return;
-        }
-
-        //requestPath = repositoryManager.restoreOriginalVersion(requestPath);
-
-        logger.info("Artifact not found locally, attempting to fetch from remote: {}", requestPath);
-        remoteService.fetchAndServeFromRemote(requestPath, response);
+        repositoryManager.handleRequest(requestPath, response, getRepositoryResponse);
     }
 }

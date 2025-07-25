@@ -3,6 +3,7 @@ package org.debian.mavenproxy;
 import org.debian.mavenproxy.build.BuildExecutor;
 import org.debian.mavenproxy.build.GradleBuildExecutor;
 import org.debian.mavenproxy.build.MavenBuildExecutor;
+import org.debian.mavenproxy.request.RepositoryManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -74,12 +76,14 @@ public class Main {
             dbManager.initialize();
 
             // Initialize RepositoryManager
-            ArtifactMapper mapper = new ArtifactMapper(mapArtifacts, dbManager, replaceLines, ignoreLines);
-            OldRepositoryManager repositoryManager = new OldRepositoryManager(localRepoPath, debianRepoPath, mapper);
-
-            MavenRemoteService mavenRemoteService = new MavenRemoteService(remoteRepoUrls, repositoryManager, dbManager);
             // Initialize and start ProxyServer
-            ProxyServer proxyServer = new ProxyServer(repositoryManager, mavenRemoteService, port);
+            RepositoryManager repositoryManager =
+                    new RepositoryManager(localRepoPath,
+                            debianRepoPath,
+                            Arrays.asList(remoteRepoUrls),
+                            ignoreLines,
+                            replaceLines);
+            ProxyServer proxyServer = new ProxyServer(repositoryManager,  port);
             proxyServer.start();
 
             Map<String, Object> buildNode = (Map<String, Object>) config.get("build");

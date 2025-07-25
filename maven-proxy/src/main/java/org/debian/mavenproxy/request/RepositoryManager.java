@@ -3,7 +3,6 @@ package org.debian.mavenproxy.request;
 import org.apache.http.HttpResponse;
 import org.debian.mavenproxy.Artifact;
 import org.debian.mavenproxy.ArtifactParseUtil;
-import org.debian.mavenproxy.ContentTypes;
 import org.debian.mavenproxy.repositories.DebianRepository;
 import org.debian.mavenproxy.repositories.LocalRepository;
 import org.debian.mavenproxy.repositories.RemoteRepository;
@@ -16,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class RepositoryManager {
-    private final ContentTypes contentTypes = new ContentTypes();
     private final LocalRepository localRepository;
     private final DebianRepository debianRepository;
     private final List<RemoteRepository> remoteRepositories;
@@ -62,5 +60,9 @@ public class RepositoryManager {
                 // ignore
             }
         }
+    }
+
+    public LocalRepository getLocalRepository() {
+        return localRepository;
     }
 }
