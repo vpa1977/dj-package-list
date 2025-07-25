@@ -1,7 +1,6 @@
 package org.debian.mavenproxy;
 
 public class ArtifactParseUtil {
-    public record Artifact(String groupId, String name, String version, String type) {}
     public static Artifact parse(String requestPath){
         String path = requestPath.startsWith("/") ? requestPath.substring(1) : requestPath;
         int fileLocation = path.lastIndexOf("/");
@@ -33,11 +32,8 @@ public class ArtifactParseUtil {
     }
 
     public static String mapRequestPath(String requestPath, String version) {
-        boolean leadingSlash = false;
-        if (requestPath.startsWith("/")) {
-            leadingSlash = true;
-        }
-        ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(requestPath);
+        boolean leadingSlash = requestPath.startsWith("/");
+        Artifact art = ArtifactParseUtil.parse(requestPath);
         String filePath = requestPath.substring(requestPath.lastIndexOf("/")+1);
         String ext = filePath.substring(filePath.lastIndexOf(".")+1);
         String newFileName = art.name() + "-"+ version + "." + ext;

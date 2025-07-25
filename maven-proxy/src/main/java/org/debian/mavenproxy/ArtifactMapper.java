@@ -23,7 +23,7 @@ public class ArtifactMapper {
     private final DbManager dbManager;
     private final DependencyRuleSet ignoreRuleSet;
     private final DependencyRuleSet replaceRuleSet;
-    private final HashMap<ArtifactParseUtil.Artifact, File> mappedFiles = new HashMap<>();
+    private final HashMap<Artifact, File> mappedFiles = new HashMap<>();
 
     public ArtifactMapper(boolean map, DbManager dbManager, List<String> replaceRules, List<String> ignoreRules) throws IOException {
         this.map = map;
@@ -42,7 +42,7 @@ public class ArtifactMapper {
      * @return RemappedArtifact
      */
     public RemappedArtifact mapRequestPath(Path debianPath, String path) {
-        ArtifactParseUtil.Artifact art = ArtifactParseUtil.parse(path);
+        Artifact art = ArtifactParseUtil.parse(path);
         if (!map) {
             return new RemappedArtifact(art, path, path);
         }
@@ -77,7 +77,7 @@ public class ArtifactMapper {
      * @param sourceFile - source file in maven repo
      * @return file to return to the caller
      */
-    public File mapFile(ArtifactParseUtil.Artifact art, File sourceFile)  {
+    public File mapFile(Artifact art, File sourceFile)  {
         if (!map) {
             return sourceFile;
         }
@@ -93,6 +93,7 @@ public class ArtifactMapper {
             newFile.deleteOnExit();
             POMMapper.mapPom(sourceFile, newFile, art.groupId(), art.name(), art.version());
             mappedFiles.put(art, newFile);
+
             return newFile;
         } catch (ParserConfigurationException | TransformerException | SAXException | IOException e) {
             throw new RuntimeException("Mapping failed " + e.getMessage());
@@ -100,7 +101,7 @@ public class ArtifactMapper {
     }
 
     public void readDebianVersions(Path filePath) throws IOException, ParserConfigurationException, SAXException, SQLException {
-        Map<ArtifactParseUtil.Artifact, String> originalVersions = POMMapper.getOriginalVersions(filePath.toFile());
+        Map<Artifact, String> originalVersions = POMMapper.getOriginalVersions(filePath.toFile());
         for (var entry : originalVersions.entrySet()) {
             dbManager.storeDebianToVersion(entry.getKey().groupId(), entry.getKey().name(), entry.getValue());
         }

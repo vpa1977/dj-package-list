@@ -1,7 +1,6 @@
 package org.debian.mavenproxy;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
@@ -15,6 +14,7 @@ import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ import java.util.Map;
 
 public class POMMapper {
 
-    public static Map<ArtifactParseUtil.Artifact, String> getOriginalVersions(File inputFile)  throws IOException, ParserConfigurationException, SAXException {
+    public static Map<Artifact, String> getOriginalVersions(File inputFile)  throws IOException, ParserConfigurationException, SAXException {
         // debian stores original dependency version in project/properties/debian.<groupId>.artifactId.originalVersion
         DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
@@ -31,14 +31,14 @@ public class POMMapper {
         Node project = doc.getElementsByTagName("project").item(0);
         Node propertyNode = firstChildNode(project, "properties");
         NodeList nl = propertyNode.getChildNodes();
-        HashMap<ArtifactParseUtil.Artifact, String> arts = new HashMap<>();
+        HashMap<Artifact, String> arts = new HashMap<>();
         for (int i = 0; i < nl.getLength(); ++i) {
             Node n = nl.item(i);
             if ("debian.originalVersion".equals(n.getNodeName())) {
                 continue; // we have already got this pom, no need to record
             }
             if (n.getNodeName().endsWith(".originalVersion")) {
-                ArtifactParseUtil.Artifact art = parseOriginalVersion(n.getNodeName());
+                Artifact art = parseOriginalVersion(n.getNodeName());
                 String originalVersion = n.getTextContent();
                 arts.put(art, originalVersion);
             }
@@ -82,12 +82,14 @@ public class POMMapper {
         transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "4");
 
         DOMSource source = new DOMSource(doc);
-        StreamResult result = new StreamResult(outputFile);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        StreamResult result = new StreamResult(bos);
 
         transformer.transform(source, result);
+        return bos.toByteArray();
     }
 
-    private static ArtifactParseUtil.Artifact parseOriginalVersion(String nodeName) {
+    private static Artifact parseOriginalVersion(String nodeName) {
         if (!nodeName.startsWith("debian.")) {
             throw new RuntimeException(nodeName + " should start with debian.");
         }
@@ -95,7 +97,7 @@ public class POMMapper {
         nodeName = nodeName.substring(0, nodeName.lastIndexOf("."));
         String groupId = nodeName.substring(0, nodeName.lastIndexOf("."));
         String artifactId = nodeName.substring(nodeName.lastIndexOf(".") + 1);
-        return new ArtifactParseUtil.Artifact(groupId, artifactId, "debian", "pom");
+        return new Artifact(groupId, artifactId, "debian", "pom");
     }
 
     private static Node firstChildNode(Node n, String nodeName) {

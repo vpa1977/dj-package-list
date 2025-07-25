@@ -22,15 +22,15 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HexFormat;
 
-public class RepositoryManager {
+public class OldRepositoryManager {
 
-    private static final Logger logger = LoggerFactory.getLogger(RepositoryManager.class);
+    private static final Logger logger = LoggerFactory.getLogger(OldRepositoryManager.class);
     private final Path localRepositoryPath;
     private final Path debianPath;
     private final ArtifactMapper artifactMapper;
     private final HashMap<Artifact, String> originalVersions = new HashMap<>();
 
-    public RepositoryManager(String localRepositoryBasePath, String debianPath, ArtifactMapper mapper) throws IOException {
+    public OldRepositoryManager(String localRepositoryBasePath, String debianPath, ArtifactMapper mapper) throws IOException {
         this.artifactMapper = mapper;
         this.localRepositoryPath = Paths.get(localRepositoryBasePath).toAbsolutePath().normalize();
         this.debianPath = Paths.get(debianPath).toAbsolutePath().normalize();

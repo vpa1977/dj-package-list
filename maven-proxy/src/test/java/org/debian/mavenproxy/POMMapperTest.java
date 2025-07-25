@@ -3,7 +3,6 @@ package org.debian.mavenproxy;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,8 +48,8 @@ public class POMMapperTest {
                 """);
 
         var ret = POMMapper.getOriginalVersions(input);
-        assertEquals("3.0.2", ret.get(new ArtifactParseUtil.Artifact("com.google.code.findbugs", "jsr305", "debian", "pom")));
-        assertEquals("2.9.1", ret.get(new ArtifactParseUtil.Artifact("com.google.code.gson", "gson", "debian", "pom")));
+        assertEquals("3.0.2", ret.get(new Artifact("com.google.code.findbugs", "jsr305", "debian", "pom")));
+        assertEquals("2.9.1", ret.get(new Artifact("com.google.code.gson", "gson", "debian", "pom")));
     }
 
     @Test

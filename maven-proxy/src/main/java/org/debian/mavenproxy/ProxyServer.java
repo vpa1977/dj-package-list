@@ -17,13 +17,13 @@ import java.util.concurrent.TimeUnit;
 public class ProxyServer implements HttpRequestHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(ProxyServer.class);
-    private final RepositoryManager repositoryManager;
+    private final OldRepositoryManager repositoryManager;
     private final int port;
     private final MavenRemoteService remoteService;
     private HttpServer server;
     private final ContentTypes contentTypes = new ContentTypes();
 
-    public ProxyServer(RepositoryManager repositoryManager, MavenRemoteService remoteService, int port) {
+    public ProxyServer(OldRepositoryManager repositoryManager, MavenRemoteService remoteService, int port) {
         this.repositoryManager = repositoryManager;
         // Ensure remoteRepositoryUrl ends with a slash for consistent path concatenation
         this.port = port;

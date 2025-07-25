@@ -14,3 +14,14 @@ Proxy stores all fetched artifact coordinates.
 [ Nice to have ]
 Proxy is fed a list of repository upstreams through debian helper call PUT http://localhost:8080/api/repository.
 Proxy configures list of upstreams. 
+
+
+## How it works. 
+
+1. Proxy checks local cache for the exact path to the artifact. 
+   If found -> return artifact. 
+2. Apply substitution rules to search Debian repository (remap groupId, artifactId)
+3. Proxy checks configured debian repository for groupId, artifactId
+   If found -> puts artifact in local cache (remap version), return artifact from local cache
+4. Proxy accesses upstream repositories
+   If found -> puts artifact in local cache (as is), return artifact from local cache.

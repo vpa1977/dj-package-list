@@ -24,9 +24,9 @@ public class MavenRemoteService {
     private final String[] remoteRepositoryUrl;
     private final CloseableHttpClient httpClient;
     private final DbManager dbManager;
-    private final RepositoryManager repositoryManager;
+    private final OldRepositoryManager repositoryManager;
 
-    public MavenRemoteService(String[] remoteRepositoryUrl, RepositoryManager repositoryManager, DbManager dbManager) {
+    public MavenRemoteService(String[] remoteRepositoryUrl, OldRepositoryManager repositoryManager, DbManager dbManager) {
         this.remoteRepositoryUrl = Arrays.stream(remoteRepositoryUrl).map(x -> x.endsWith("/") ? x : x + "/").toArray(String[]::new);
         this.httpClient = HttpClients.createDefault(); // Create a default HTTP client for forwarding requests
         this.repositoryManager = repositoryManager;

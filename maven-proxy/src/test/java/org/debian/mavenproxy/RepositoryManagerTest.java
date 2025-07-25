@@ -27,7 +27,7 @@ public class RepositoryManagerTest {
         Files.createDirectories(bar1);
         Files.writeString(bar1.resolve("file.txt"), data);
         ArtifactMapper mapper = new ArtifactMapper(false, null, null, null);
-        RepositoryManager rm = new RepositoryManager(testDir.getAbsolutePath(), debianDir.getAbsolutePath(), mapper);
+        OldRepositoryManager rm = new OldRepositoryManager(testDir.getAbsolutePath(), debianDir.getAbsolutePath(), mapper);
         ByteArrayInputStream bis = new ByteArrayInputStream(data.getBytes(StandardCharsets.UTF_8));
         rm.saveArtifact("/foo/bar/artifact.jar", bis);
         String savedData = Files.readString(testDir.toPath().resolve("foo/bar/artifact.jar"));

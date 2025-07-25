@@ -75,7 +75,7 @@ public class Main {
 
             // Initialize RepositoryManager
             ArtifactMapper mapper = new ArtifactMapper(mapArtifacts, dbManager, replaceLines, ignoreLines);
-            RepositoryManager repositoryManager = new RepositoryManager(localRepoPath, debianRepoPath, mapper);
+            OldRepositoryManager repositoryManager = new OldRepositoryManager(localRepoPath, debianRepoPath, mapper);
 
             MavenRemoteService mavenRemoteService = new MavenRemoteService(remoteRepoUrls, repositoryManager, dbManager);
             // Initialize and start ProxyServer
@@ -94,7 +94,7 @@ public class Main {
             }
             logger.info("Maven Proxy Server is running. Press any to stop.");
             if (executor.run() != 0 ) {
-                throw new RuntimeException("Build failed");
+                System.err.println("Build failed");
             }
             proxyServer.shutdown();
         } catch (IOException e) {
