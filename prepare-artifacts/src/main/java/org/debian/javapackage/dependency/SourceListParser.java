@@ -44,9 +44,9 @@ public class SourceListParser {
     private static Packages readSources(String distribution, String[] pockets) throws IOException {
         Packages sources = new Packages(HashMap.newHashMap(1), HashMap.newHashMap(1));
         for (var pocket : pockets) {
-            for (var p : new String[]{pocket, pocket + "-updates"}) {
+            for (var p : new String[]{pocket, pocket + "-updates",pocket + "-security", pocket + "-proposed"}) {
                 final String extension = distribution + "_" + p + "_source_Sources";
-                for (var file : Files.list(Path.of("/var/lib/apt/lists/")).filter(path -> path.toString().endsWith(extension)).toList()) {
+                for (var file : Files.list(Path.of("/var/lib/schroot/chroots/resolute-amd64" + "/var/lib/apt/lists/")).filter(path -> path.toString().endsWith(extension)).toList()) {
                     Packages filePackages = read(file.toFile());
                     sources.append(filePackages);
                 }
@@ -122,11 +122,27 @@ public class SourceListParser {
         return binaryReverseDependencies;
     }
 
+    public ArrayList<String> findSourceDependencies(String[] packages, String distribution, String[] pockets) throws IOException {
+        var sources = readSources(distribution, pockets);
+        var reverseDependencies = new ReverseDependencies(sources);
+        var sourcePackages = new HashSet<String>();
+        for (var p : packages) {
+            for (var sp : reverseDependencies.getReverseDependencies(p)) {
+                sourcePackages.add(sp.name());
+            }
+        }
+        return new ArrayList<>(sourcePackages);
+    }
+
     /**
      * Finds all reverse-dependencies of the package set
      */
     public ArrayList<Dependencies> findBinaryReverseDependencies(String[] packages, String distribution, String[] pockets) throws IOException {
         var sources = readSources(distribution, pockets);
+        return getDependencies(packages, sources);
+    }
+
+    private ArrayList<Dependencies> getDependencies(String[] packages, Packages sources) {
         var reverseDependencies = new ReverseDependencies(sources);
 
 

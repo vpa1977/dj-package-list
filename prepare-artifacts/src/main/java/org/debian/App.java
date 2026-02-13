@@ -54,7 +54,7 @@ public class App
                 "default-jre-headless",
                 "openjdk-8-jdk",
                 "openjdk-8-jdk-headless",
-        }, "plucky", new String[]{"main", "universe"});
+        }, "resolute", new String[]{"main", "universe"});
         // unpack dep[0]
         File debStore = new File("./debstore");
         debStore.mkdirs();
