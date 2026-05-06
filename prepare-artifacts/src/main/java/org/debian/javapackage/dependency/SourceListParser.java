@@ -74,16 +74,20 @@ public class SourceListParser {
         try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
             String line = null;
             String packageName = null;
+            String version = null;
             HashSet<String> binaryPackageNames = null;
             HashSet<String> buildDependencies = null;
             while ((line = r.readLine()) != null) {
                 if (line.startsWith("Package:")) {
                     if (packageName != null) {
-                        add(sourcePackages, binaryPackages, packageName, binaryPackageNames, buildDependencies);
+                        add(sourcePackages, binaryPackages, packageName, version, binaryPackageNames, buildDependencies);
                     }
                     packageName = line.substring("Package: ".length()).trim();
                     binaryPackageNames = new HashSet<>();
                     buildDependencies = new HashSet<>();
+                }
+                if (line.startsWith("Version:")) {
+                    version = line.substring("Version: ".length()).trim();
                 }
                 if (line.startsWith("Build-Depends")) {
                     addDependencies(line, buildDependencies);
@@ -92,7 +96,7 @@ public class SourceListParser {
                     addDependencies(line, binaryPackageNames);
                 }
             }
-            add(sourcePackages, binaryPackages, packageName, binaryPackageNames, buildDependencies);
+            add(sourcePackages, binaryPackages, packageName, version, binaryPackageNames, buildDependencies);
         } catch (FileNotFoundException e) {
             throw new RuntimeException(e);
         } catch (IOException e) {
@@ -101,11 +105,21 @@ public class SourceListParser {
         return new Packages(sourcePackages, binaryPackages);
     }
 
-    private static void add(HashMap<String, SourcePackage> sourcePackages, HashMap<String, SourcePackage> binaryPackages, String packageName, HashSet<String> binaryPackageNames, HashSet<String> buildDependencies) {
-        SourcePackage sp = new SourcePackage(packageName, binaryPackageNames, buildDependencies);
-        sourcePackages.put(packageName, sp);
-        for (var p : binaryPackageNames) {
-            binaryPackages.put(p, sp);
+    private static void add(HashMap<String, SourcePackage> sourcePackages, HashMap<String, SourcePackage> binaryPackages, String packageName, String version, HashSet<String> binaryPackageNames, HashSet<String> buildDependencies) {
+        SourcePackage sp = new SourcePackage(packageName, version, binaryPackageNames, buildDependencies);
+        var existing = sourcePackages.get(packageName);
+        if (existing != null) {
+            if (existing.version().compareTo(version) < 0) {
+                sourcePackages.put(packageName, sp);
+                for (var p : binaryPackageNames) {
+                    binaryPackages.put(p, sp);
+                }
+            }
+        } else {
+            sourcePackages.put(packageName, sp);
+            for (var p : binaryPackageNames) {
+                binaryPackages.put(p, sp);
+            }
         }
     }
 
@@ -153,7 +167,6 @@ public class SourceListParser {
     private ArrayList<Dependencies> getDependencies(String[] packages, Packages sources) {
         var reverseDependencies = new ReverseDependencies(sources);
 
-
         ArrayList<Dependencies> result = new ArrayList<>();
 
         HashSet<String> allDependencies = new HashSet<>();
@@ -177,7 +190,9 @@ public class SourceListParser {
         final HashSet<String> wanted = new HashSet<>(Arrays.asList(packages));
         return sources.sourcePackages.values().stream().filter( p ->
                 p.buildDeps().stream().anyMatch(wanted::contains))
-                .map(SourcePackage::binaryPackages).flatMap(Set::stream).toList();
+                .map(SourcePackage::binaryPackages).flatMap(Set::stream)
+                .map( x -> x + "=" + sources.binaryPackages.get(x).version())
+                .toList();
 
     }
 

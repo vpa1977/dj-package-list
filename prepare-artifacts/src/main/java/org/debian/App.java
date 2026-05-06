@@ -4,13 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.FileAttribute;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import org.debian.javapackage.DbManager;
 import org.debian.javapackage.dependency.SourceListParser;
@@ -19,9 +17,14 @@ import org.debian.javapackage.dependency.SourceListParser;
 public class App
 {
     private static void runCommand(File workDir, String... command) throws IOException, InterruptedException {
+        runCommand(workDir, Map.of(), command);
+    }
+
+    private static void runCommand(File workDir, Map<String, String> env, String... command) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder(command);
         pb.directory(workDir);
         pb.inheritIO();
+        pb.environment().putAll(env);
         int code = pb.start().waitFor();
         if (code != 0) {
             StringBuilder msg = new StringBuilder();
@@ -29,30 +32,38 @@ public class App
                 msg.append(cmd);
                 msg.append(" ");
             }
-            throw new RuntimeException("Failed to run "+ msg.toString());
+            throw new RuntimeException("Failed to run " + msg.toString());
         }
+    }
 
+    private static Path writeAptConf(Path tempAptDir, Path tempSources) throws IOException {
+        Path confFile = tempAptDir.resolve("apt.conf");
+        Path emptyPartsDir = tempAptDir.resolve("apt.conf.d");
+        Files.createDirectories(emptyPartsDir);
+        String conf =
+                "Dir::Etc::SourceList \"" + tempSources + "\";\n" +
+                // Prevent system /etc/apt/sources.list.d/ fragments from being read
+                "Dir::Etc::SourceParts \"" + tempAptDir + "\";\n" +
+                // Prevent system /etc/apt/apt.conf.d/ fragments from re-overriding Dir settings
+                "Dir::Etc::Parts \"" + emptyPartsDir + "\";\n" +
+                "Dir::State::Lists \"" + tempAptDir.resolve("lists") + "\";\n" +
+                "Dir::Cache \"" + tempAptDir.resolve("cache") + "\";\n" +
+                "APT::Architectures { \"amd64\"; };\n";
+        Files.writeString(confFile, conf);
+        return confFile;
     }
 
     private static void refreshAptSources(File workDir, Path tempAptDir, Path tempSources) throws IOException, InterruptedException {
-        String sourceList = "Dir::Etc::SourceList=" + tempSources;
-        String sourceListDir = "Dir::Etc::SourceParts=" + tempAptDir;
-        String listsDir = "Dir::State::Lists=" + tempAptDir.resolve("lists");
         Files.createDirectories(tempAptDir.resolve("lists").resolve("partial"));
-        runCommand(workDir, "apt-get", "update",
-                "-o", sourceList,
-                "-o", sourceListDir,
-                "-o", listsDir);
+        Files.createDirectories(tempAptDir.resolve("cache").resolve("archives").resolve("partial"));
+        Path aptConf = writeAptConf(tempAptDir, tempSources);
+        runCommand(workDir, Map.of("APT_CONFIG", aptConf.toString()), "apt-get", "update");
     }
+
     private static void downloadPkg(File workDir, Path tempAptDir, Path tempSources, String pkg) throws IOException, InterruptedException {
-        String sourceList = "Dir::Etc::SourceList=" + tempSources;
-        String sourceListDir = "Dir::Etc::SourceParts=" + tempAptDir;
-        String listsDir = "Dir::State::Lists=" + tempAptDir.resolve("lists");
-        runCommand(workDir, "apt-get", "download",
-                "-o", sourceList,
-                "-o", sourceListDir,
-                "-o", listsDir,
-                pkg);
+        Path aptConf = writeAptConf(tempAptDir, tempSources);
+        var aptEnv = Map.of("APT_CONFIG", aptConf.toString());
+        runCommand(workDir, aptEnv, "apt-get", "download", pkg);
     }
 
     private static void unpackDebFile(File debFile, File destinationDir) throws IOException, InterruptedException {
@@ -66,12 +77,14 @@ public class App
         StringBuilder content = new StringBuilder();
         String componentsStr = String.join(" ", components);
 
-        List<String> variants = List.of("", "-security", "-proposed", "-updates");
+        List<String> variants = List.of("",  "-updates");
 
         for (String variant : variants) {
             content.append(String.format("deb %s %s%s %s\n",
                     mirrorUrl, releaseName, variant, componentsStr));
         }
+
+        content.append(String.format("deb http://security.ubuntu.com/ubuntu %s-security %s\n", releaseName, componentsStr));
 
         Path tempFile = Files.createTempFile("apt-sources-", ".list");
         tempFile.toFile().deleteOnExit();
@@ -81,7 +94,7 @@ public class App
     }
 
     public static void main( String[] args ) throws IOException, InterruptedException {
-        var release = "questing";
+        var release = "stonking";
         var components = new String[] {"main", "universe"};
         var mirror = "http://nz.archive.ubuntu.com/ubuntu/";
 
@@ -105,15 +118,17 @@ public class App
         File tempDir = null;
         var tempSources = createTempSourcesList(mirror, release, components);
         Path tempAptDir = Files.createTempDirectory("apt-tmp-");
+        tempAptDir.toFile().deleteOnExit();
         refreshAptSources(debStore, tempAptDir, tempSources);
         try {
 
-            for (var packageName : deps) {
+            for (var dep : deps) {
                 try {
+                    var packageName = dep.substring(0, dep.indexOf('='));
                     var existingFile = findPackageFile(packageName, debStore);
                     if (existingFile.isEmpty()) {
                         try {
-                            downloadPkg(debStore, tempAptDir, tempSources, packageName);
+                            downloadPkg(debStore, tempAptDir, tempSources, dep);
                             existingFile = findPackageFile(packageName, debStore);
                         }
                         catch (Exception e) {
