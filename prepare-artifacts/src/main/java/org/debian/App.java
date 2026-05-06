@@ -4,10 +4,13 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileAttribute;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import org.debian.javapackage.DbManager;
 import org.debian.javapackage.dependency.SourceListParser;
@@ -30,8 +33,26 @@ public class App
         }
 
     }
-    private static void downloadPkg(File workDir, String pkg) throws IOException, InterruptedException {
-        runCommand(workDir, "apt-get", "download", pkg);
+
+    private static void refreshAptSources(File workDir, Path tempAptDir, Path tempSources) throws IOException, InterruptedException {
+        String sourceList = "Dir::Etc::SourceList=" + tempSources;
+        String sourceListDir = "Dir::Etc::SourceParts=" + tempAptDir;
+        String listsDir = "Dir::State::Lists=" + tempAptDir.resolve("lists");
+        Files.createDirectories(tempAptDir.resolve("lists").resolve("partial"));
+        runCommand(workDir, "apt-get", "update",
+                "-o", sourceList,
+                "-o", sourceListDir,
+                "-o", listsDir);
+    }
+    private static void downloadPkg(File workDir, Path tempAptDir, Path tempSources, String pkg) throws IOException, InterruptedException {
+        String sourceList = "Dir::Etc::SourceList=" + tempSources;
+        String sourceListDir = "Dir::Etc::SourceParts=" + tempAptDir;
+        String listsDir = "Dir::State::Lists=" + tempAptDir.resolve("lists");
+        runCommand(workDir, "apt-get", "download",
+                "-o", sourceList,
+                "-o", sourceListDir,
+                "-o", listsDir,
+                pkg);
     }
 
     private static void unpackDebFile(File debFile, File destinationDir) throws IOException, InterruptedException {
@@ -41,34 +62,59 @@ public class App
     private record Artifact(String groupId, String artifactId, String version) {
     }
 
+    public static Path createTempSourcesList(String mirrorUrl, String releaseName, String[] components) throws IOException {
+        StringBuilder content = new StringBuilder();
+        String componentsStr = String.join(" ", components);
+
+        List<String> variants = List.of("", "-security", "-proposed", "-updates");
+
+        for (String variant : variants) {
+            content.append(String.format("deb %s %s%s %s\n",
+                    mirrorUrl, releaseName, variant, componentsStr));
+        }
+
+        Path tempFile = Files.createTempFile("apt-sources-", ".list");
+        tempFile.toFile().deleteOnExit();
+        Files.writeString(tempFile, content.toString());
+
+        return tempFile;
+    }
+
     public static void main( String[] args ) throws IOException, InterruptedException {
+        var release = "questing";
+        var components = new String[] {"main", "universe"};
+        var mirror = "http://nz.archive.ubuntu.com/ubuntu/";
+
         new File("artifacts.db").delete();
         DbManager dbManager = new DbManager("artifacts.db");
         dbManager.initialize();
 
         SourceListParser sourceListParser = new SourceListParser();
-        ArrayList<SourceListParser.Dependencies> deps = sourceListParser.findBinaryReverseDependencies(new String[]{
+        //
+        var deps = sourceListParser.findBuiltWith(new String[]{
                 "default-jdk",
                 "default-jdk-headless",
                 "default-jre",
                 "default-jre-headless",
                 "openjdk-8-jdk",
                 "openjdk-8-jdk-headless",
-        }, "resolute", new String[]{"main", "universe"});
+        }, release, components);
         // unpack dep[0]
         File debStore = new File("./debstore");
         debStore.mkdirs();
-        SourceListParser.Dependencies immediateDeps = deps.get(0);
         File tempDir = null;
+        var tempSources = createTempSourcesList(mirror, release, components);
+        Path tempAptDir = Files.createTempDirectory("apt-tmp-");
+        refreshAptSources(debStore, tempAptDir, tempSources);
         try {
 
-            for (var pkg : immediateDeps.binaryPackages()) {
+            for (var packageName : deps) {
                 try {
-                    var existingFile = findPackageFile(pkg, debStore);
+                    var existingFile = findPackageFile(packageName, debStore);
                     if (existingFile.isEmpty()) {
                         try {
-                            downloadPkg(debStore, pkg);
-                            existingFile = findPackageFile(pkg, debStore);
+                            downloadPkg(debStore, tempAptDir, tempSources, packageName);
+                            existingFile = findPackageFile(packageName, debStore);
                         }
                         catch (Exception e) {
                             System.err.println(e.getMessage());
@@ -88,7 +134,6 @@ public class App
                     }
                     runCommand(new File("."), "rm", "-rf", tempDir.toString());
 
-                    var packageName = pkg;
                     var version = existingFile.get().getName().split("_")[1];
                     System.out.println("Extracted "+ packageName + " at " + version);
                     System.out.println("Writing database");

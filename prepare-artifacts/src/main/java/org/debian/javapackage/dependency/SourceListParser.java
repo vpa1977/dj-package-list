@@ -5,6 +5,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -13,8 +17,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.zip.GZIPInputStream;
 
 /*
 Package: abseil
@@ -42,12 +48,14 @@ Vcs-Browser: https://salsa.debian.org/debian/abseil
 public class SourceListParser {
 
     private static Packages readSources(String distribution, String[] pockets) throws IOException {
+
         Packages sources = new Packages(HashMap.newHashMap(1), HashMap.newHashMap(1));
         for (var pocket : pockets) {
-            for (var p : new String[]{pocket, pocket + "-updates",pocket + "-security", pocket + "-proposed"}) {
-                final String extension = distribution + "_" + p + "_source_Sources";
-                for (var file : Files.list(Path.of("/var/lib/schroot/chroots/resolute-amd64" + "/var/lib/apt/lists/")).filter(path -> path.toString().endsWith(extension)).toList()) {
-                    Packages filePackages = read(file.toFile());
+            for (var p : new String[]{distribution, distribution + "-updates", distribution + "-security", distribution + "-proposed"}) {
+                var main = URI.create(String.format("https://archive.ubuntu.com/ubuntu/dists/%s/%s/source/Sources.gz", distribution, pocket));
+                var url = main.toURL();
+                try (InputStream is = url.openStream(); GZIPInputStream gz = new GZIPInputStream(is); ) {
+                    Packages filePackages = read(gz);
                     sources.append(filePackages);
                 }
             }
@@ -60,10 +68,10 @@ public class SourceListParser {
      * src:<source-package-name> -> source package
      * <binary-package-name> -> source package
      */
-    private static Packages read(File f) {
+    private static Packages read(InputStream is) {
         HashMap<String, SourcePackage> sourcePackages = new HashMap<>();
         HashMap<String, SourcePackage> binaryPackages = new HashMap<>();
-        try (BufferedReader r = new BufferedReader(new FileReader(f))) {
+        try (BufferedReader r = new BufferedReader(new InputStreamReader(is))) {
             String line = null;
             String packageName = null;
             HashSet<String> binaryPackageNames = null;
@@ -162,6 +170,15 @@ public class SourceListParser {
             allDependencies.addAll(dependencies);
         }
         return result;
+    }
+
+    public List<String> findBuiltWith(String[] packages, String suite, String[] pockets) throws IOException {
+        var sources = readSources(suite, pockets);
+        final HashSet<String> wanted = new HashSet<>(Arrays.asList(packages));
+        return sources.sourcePackages.values().stream().filter( p ->
+                p.buildDeps().stream().anyMatch(wanted::contains))
+                .map(SourcePackage::binaryPackages).flatMap(Set::stream).toList();
+
     }
 
     /**

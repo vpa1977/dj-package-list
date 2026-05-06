@@ -45,6 +45,12 @@
             <artifactId>slf4j-simple</artifactId> <!-- Simple binding for console logging -->
             <version>${slf4j.version}</version>
         </dependency>
+        <!-- yaml parser -->
+        <dependency>
+            <groupId>org.snakeyaml</groupId>
+            <artifactId>snakeyaml-engine</artifactId>
+            <version>2.7</version>
+        </dependency>
     </dependencies>
 
     <build>
